@@ -6,7 +6,10 @@ from services.ans_client import ANSClientError, ANSConfigurationError
 
 
 class SearchRouteTests(unittest.TestCase):
+    """Check the Flask routes without contacting the real ANS service."""
+
     def setUp(self):
+        # Flask's test client calls routes in memory, so no server is required.
         app.config.update(TESTING=True)
         self.client = app.test_client()
 
@@ -34,6 +37,8 @@ class SearchRouteTests(unittest.TestCase):
 
     @patch("app.search_agents")
     def test_search_returns_normalized_candidates(self, mock_search_agents):
+        # Replace the real network call with a predictable result. Route tests
+        # should test our Flask logic, not depend on the internet being online.
         mock_search_agents.return_value = [
             {
                 "agent_id": "agent-123",
@@ -55,6 +60,9 @@ class SearchRouteTests(unittest.TestCase):
         self.assertEqual(response.json["capability"], "customer-support")
         self.assertEqual(response.json["search_query"], "HaloHeat Sauna")
         self.assertEqual(response.json["candidates"][0]["agent_id"], "agent-123")
+
+        # This also verifies that capability detection produced the correct ANS
+        # search phrase.
         mock_search_agents.assert_called_once_with("HaloHeat Sauna")
 
     @patch("app.search_agents")

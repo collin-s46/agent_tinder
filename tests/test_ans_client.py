@@ -6,8 +6,12 @@ from services.ans_client import ANSConfigurationError, search_agents
 
 
 class ANSClientTests(unittest.TestCase):
+    """Check ANS request construction and response normalization in isolation."""
+
     @patch("services.ans_client.requests.get")
     def test_search_builds_request_and_normalizes_agents(self, mock_get):
+        # This fake response has the important fields from the real response the
+        # user received during the manual HaloHeat ANS test.
         response = Mock()
         response.json.return_value = {
             "items": [
@@ -41,6 +45,8 @@ class ANSClientTests(unittest.TestCase):
         }
         mock_get.return_value = response
 
+        # patch.dict supplies safe fake credentials only for this test. No real
+        # key or secret belongs in source code or test fixtures.
         environment = {
             "GODADDY_API_KEY": "test-key",
             "GODADDY_API_SECRET": "test-secret",
@@ -56,6 +62,8 @@ class ANSClientTests(unittest.TestCase):
         self.assertEqual(candidates[0]["skills"][0]["id"], "answer-questions")
         mock_get.assert_called_once()
 
+        # Inspect the mocked request to prove the client used the correct URL,
+        # filters, authentication format, and timeout.
         request = mock_get.call_args
         self.assertEqual(
             request.args[0],
@@ -71,6 +79,8 @@ class ANSClientTests(unittest.TestCase):
         self.assertEqual(request.kwargs["timeout"], 7.0)
 
     def test_search_requires_credentials(self):
+        # With an empty environment, the client should fail before it attempts a
+        # network request and should tell the developer what configuration lacks.
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(ANSConfigurationError):
                 search_agents("HaloHeat Sauna")
