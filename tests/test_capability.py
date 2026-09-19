@@ -11,7 +11,11 @@ class CapabilityDetectionTests(unittest.TestCase):
 
     def test_spark_detects_each_supported_event_topic(self):
         cases = (
-            ("I need catering for a graduation party.", "catering", "catering"),
+            (
+                "I need catering for a graduation party.",
+                "catering",
+                "event catering",
+            ),
             ("Find a DJ for my birthday party.", "entertainment", "event planning"),
             ("Help me find a wedding venue.", "venue", "wedding venue"),
             ("We need an event photographer.", "photography", "photography"),

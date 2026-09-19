@@ -38,9 +38,9 @@ PRIMARY_AGENTS = {
                     "menu",
                     "meal",
                 ),
-                # This exact query returned a strong live ANS/A2A result during
-                # the Step 1 audit.
-                "search_query": "catering",
+                # This broader audited query still finds DWS Catering while
+                # also returning usable event-planning alternatives for Pass.
+                "search_query": "event catering",
             },
             {
                 "id": "entertainment",

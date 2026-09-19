@@ -100,8 +100,8 @@ class SearchRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json["primary_agent"]["name"], "Spark")
         self.assertEqual(response.json["capability"], "catering")
-        self.assertEqual(response.json["search_query"], "catering")
-        mock_search_agents.assert_called_once_with("catering")
+        self.assertEqual(response.json["search_query"], "event catering")
+        mock_search_agents.assert_called_once_with("event catering")
 
     @patch("app.search_agents")
     def test_search_filters_weak_candidates_and_keeps_strong_matches(

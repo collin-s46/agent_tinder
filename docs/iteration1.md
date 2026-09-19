@@ -196,6 +196,14 @@ Candidates scoring below 50 are removed, and the remaining real ANS results
 are returned in descending score order. The scorer contains no HaloHeat,
 Spark, Sage, event, or wellness-specific branches.
 
+### Spark candidate follow-up — completed September 19, 2026
+
+An expanded ANS audit found three useful public A2A alternatives for Spark:
+Majestic Banquet & Events, KELASSEY Event Co, and Main Event Co. Spark's
+catering query now uses the audited phrase `event catering`, which continues
+to find DWS Catering while also finding these event-service alternatives. No
+agent IDs or invented candidate records are hard-coded into the application.
+
 ## 7. Make Agent A Visible Throughout the Flow
 
 Keep the selected Agent A visible on the request, ANS search, candidate,
