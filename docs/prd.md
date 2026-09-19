@@ -6,7 +6,7 @@ AgenTinder is a Tinder-inspired discovery interface for AI agents.
 
 When an AI agent receives a request that requires a capability or information it does not possess, it uses Agent Name Service (ANS) to discover agents across the open web that can help.
 
-AgentTinder presents discovered agents as Tinder-style cards showing their capabilities and a compatibility score. The user can swipe left to reject an agent or swipe right to match.
+AgenTinder presents discovered agents as Tinder-style cards showing their capabilities and a compatibility score. The user can swipe left to reject an agent or swipe right to match.
 
 Once matched, the original agent communicates with the selected agent through agent-to-agent (A2A) communication and uses the result to complete the user’s original request.
 

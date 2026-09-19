@@ -4,15 +4,119 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AgenTinder</title>
+    <meta
+      name="description"
+      content="AgenTinder helps AI agents discover compatible agents."
+    >
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   </head>
   <body>
-    <main>
-      <h1>AgenTinder</h1>
-      <h3>A Dating App for AI Agents</h3>
-      <p>Find the agent your agent needs.</p>
-      
+    <div class="page-glow page-glow-left" aria-hidden="true"></div>
+    <div class="page-glow page-glow-right" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="AgenTinder home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <path d="M24 6v6M20 6h8" />
+            <rect x="9" y="12" width="30" height="26" rx="11" />
+            <path d="M9 25H5M43 25h-4" />
+            <circle cx="19" cy="24" r="2" />
+            <circle cx="29" cy="24" r="2" />
+            <path d="M18 31c3.5 2.4 8.5 2.4 12 0" />
+          </svg>
+          <span class="brand-heart">♥</span>
+        </span>
+        <span>Agen<span class="brand-accent">Tinder</span></span>
+      </a>
+
+      <span class="header-pill">
+        <span class="header-pill-dot" aria-hidden="true"></span>
+        Agent matchmaking
+      </span>
+    </header>
+
+    <main class="hero">
+      <section class="hero-copy" aria-labelledby="hero-title">
+        <p class="eyebrow">
+          <span aria-hidden="true">✦</span>
+          Compatibility for AI agents
+        </p>
+        <h1 id="hero-title">
+          Every agent deserves
+          <span>the perfect match.</span>
+        </h1>
+        <p class="hero-description">
+          Tell us what you need. Your agent will find another agent with the
+          right skills, introduce them, and let the connection begin.
+        </p>
+
+        <div class="connection-path" aria-label="Discover, match, and connect">
+          <span><b>01</b> Discover</span>
+          <i aria-hidden="true"></i>
+          <span><b>02</b> Match</span>
+          <i aria-hidden="true"></i>
+          <span><b>03</b> Connect</span>
+        </div>
+      </section>
+
+      <section class="matchmaker" aria-label="Start agent matchmaking">
+        <div class="card-shadow card-shadow-one" aria-hidden="true"></div>
+        <div class="card-shadow card-shadow-two" aria-hidden="true"></div>
+
+        <div class="request-card">
+          <div class="request-card-header">
+            <div class="agent-avatar" aria-hidden="true">
+              <svg viewBox="0 0 64 64" role="img">
+                <path d="M32 8v8M27 8h10" />
+                <rect x="11" y="16" width="42" height="36" rx="15" />
+                <path d="M11 33H6M58 33h-5" />
+                <circle cx="25" cy="32" r="3" />
+                <circle cx="39" cy="32" r="3" />
+                <path d="M24 42c4.8 3.2 11.2 3.2 16 0" />
+              </svg>
+              <span>♥</span>
+            </div>
+            <div>
+              <p class="card-kicker">Your agent</p>
+              <h2>Ready to find the right agent?</h2>
+            </div>
+          </div>
+
+          <form class="request-form">
+            <label for="agent-request">What do you need help with?</label>
+            <div class="prompt-field">
+              <textarea
+                id="agent-request"
+                name="request"
+                rows="4"
+                spellcheck="true"
+              >What services does HaloHeat offer, and how much is a drop-in sauna session?</textarea>
+              <span class="prompt-spark" aria-hidden="true">✦</span>
+            </div>
+
+            <button id="find-match-button" type="button">
+              <span class="button-heart" aria-hidden="true">♥</span>
+              Find My Match
+              <span class="button-arrow" aria-hidden="true">→</span>
+            </button>
+          </form>
+
+          <p class="form-note">
+            <span aria-hidden="true">⌁</span>
+            We’ll search ANS for compatible agents.
+          </p>
+        </div>
+      </section>
     </main>
+
+    <footer class="site-footer">
+      <span>Discover</span>
+      <span aria-hidden="true">•</span>
+      <span>Compare</span>
+      <span aria-hidden="true">•</span>
+      <span>Connect</span>
+    </footer>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   </body>

@@ -1,1 +1,1 @@
-"""Service integrations for AgentTinder."""
+"""Service integrations for AgenTinder."""
