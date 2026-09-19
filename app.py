@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 @app.get("/")
 def index():
-    """Render the AgentTinder homepage."""
+    """Render the AgenTinder homepage."""
     return render_template("index.html")
 
 

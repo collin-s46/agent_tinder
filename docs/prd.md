@@ -1,8 +1,8 @@
-AgentTinder
+AgenTinder
 
 1. Product Summary
 
-AgentTinder is a Tinder-inspired discovery interface for AI agents.
+AgenTinder is a Tinder-inspired discovery interface for AI agents.
 
 When an AI agent receives a request that requires a capability or information it does not possess, it uses Agent Name Service (ANS) to discover agents across the open web that can help.
 
