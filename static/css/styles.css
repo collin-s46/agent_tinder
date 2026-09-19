@@ -269,9 +269,140 @@ textarea {
   transform: translateX(-50%);
 }
 
+.primary-agent-picker {
+  margin-bottom: 24px;
+}
+
+.primary-agent-picker-heading {
+  display: flex;
+  margin-bottom: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.primary-agent-picker-heading p {
+  margin: 0;
+  color: #514a5c;
+  font-size: 0.78rem;
+  font-weight: 820;
+}
+
+.primary-agent-picker-heading > span {
+  color: #9a92a4;
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.primary-agent-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.primary-agent-option {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  padding: 12px;
+  align-items: center;
+  grid-template-columns: 38px minmax(0, 1fr) 18px;
+  gap: 9px;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  color: #5f5869;
+  text-align: left;
+  background: rgba(252, 250, 253, 0.86);
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.primary-agent-option:hover {
+  border-color: #dcd3e3;
+  transform: translateY(-1px);
+}
+
+.primary-agent-option:focus-visible {
+  outline: 3px solid rgba(139, 114, 246, 0.28);
+  outline-offset: 2px;
+}
+
+.primary-agent-option--selected {
+  border-color: rgba(255, 63, 129, 0.45);
+  color: var(--ink);
+  background: linear-gradient(145deg, #fff8fa, #faf7ff);
+  box-shadow: 0 9px 20px rgba(72, 48, 84, 0.09);
+}
+
+.primary-agent-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 13px;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.primary-agent-option[data-theme="coral"] .primary-agent-icon {
+  color: #eb4a65;
+  background: #ffe9ed;
+}
+
+.primary-agent-option[data-theme="coral"] .primary-agent-icon::before {
+  content: "✦";
+}
+
+.primary-agent-option[data-theme="lavender"] .primary-agent-icon {
+  color: #745ce1;
+  background: #eeeaff;
+}
+
+.primary-agent-option[data-theme="lavender"] .primary-agent-icon::before {
+  content: "❋";
+}
+
+.primary-agent-option-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.primary-agent-option-copy strong {
+  overflow: hidden;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+}
+
+.primary-agent-option-copy small {
+  overflow: hidden;
+  color: #8b8394;
+  font-size: 0.64rem;
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+}
+
+.primary-agent-check {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  color: transparent;
+  font-size: 0.62rem;
+  background: #eee9f1;
+}
+
+.primary-agent-option--selected .primary-agent-check {
+  color: white;
+  background: linear-gradient(135deg, var(--coral), var(--pink));
+}
+
 .request-card-header {
   display: flex;
-  margin-bottom: 30px;
+  margin-bottom: 10px;
   align-items: center;
   gap: 16px;
 }
@@ -326,6 +457,22 @@ textarea {
   margin: 0;
   font-size: 1.25rem;
   letter-spacing: -0.035em;
+}
+
+.request-card h2 small {
+  display: block;
+  margin-top: 3px;
+  color: #7e7688;
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0;
+}
+
+.selected-agent-description {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.55;
 }
 
 .request-form label {
@@ -1002,6 +1149,10 @@ textarea {
   .request-card {
     padding: 28px 22px;
     border-radius: 24px;
+  }
+
+  .primary-agent-options {
+    grid-template-columns: 1fr;
   }
 
   .card-shadow {

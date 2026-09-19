@@ -6,7 +6,7 @@ Let the user choose one visible primary agent (Agent A), ask a question within
 that agent's specialty, and watch Agent A discover and contact a compatible
 Agent B through ANS and A2A.
 
-The recommended starting set is:
+The initial categories to evaluate are:
 
 - **Atlas — Travel Planner:** destinations, accommodations, weather, and activities.
 - **Spark — Event Planner:** venues, catering, entertainment, and event logistics.
@@ -26,6 +26,71 @@ Only keep an Agent A category if ANS contains at least one relevant, publicly
 callable Agent B. Do not invent agents or hard-code fake responses when a
 category has no usable live match.
 
+### Step 1 audit result — completed September 19, 2026
+
+The audit searched ANS for travel, hotels, weather, tourism, event planning,
+catering, restaurants, local services, sauna, spas, fitness, plumbing, HVAC,
+home services, wedding venues, and photography.
+
+The strongest verified categories are:
+
+#### Keep: Event Planner
+
+- `event planning` returned several relevant, public A2A agents.
+- Main Event Co advertised JSON-RPC A2A `0.3.0` with no authentication and
+  returned a useful description of its DJ and event services.
+- DWS Divaz With Soul Catering advertised the same compatible protocol and
+  returned detailed graduation-party packages and prices.
+- Additional venue and photography agents were discoverable, although the
+  tested photography agent returned only a contact-us fallback.
+
+This category has enough real Agent B variety to support topics such as DJs,
+catering, venues, and event photography.
+
+#### Keep: Wellness Concierge
+
+- `sauna`, `spa`, and `fitness` returned relevant ANS results.
+- HaloHeat remains a callable A2A match for sauna questions.
+- Golden Spa advertised compatible public A2A and returned specific massage
+  services, session lengths, pricing, hours, and first-visit information.
+
+This category can cover spa, massage, sauna, and fitness-service questions
+without depending on HaloHeat alone.
+
+#### Do not keep yet: Travel Planner
+
+- ANS returned a strong specialized travel result named Universal Checkout
+  Concierge, with flight, hotel, and car-rental capabilities.
+- Its Agent Card requires authentication and does not advertise the A2A
+  protocol version supported by the current MVP client.
+- A public tourism support agent connected successfully but returned only a
+  contact-support fallback rather than useful travel information.
+- The `weather` query returned unrelated customer-support agents.
+
+Travel should wait until the MVP supports the specialized agent's security and
+protocol requirements or a stronger public travel agent becomes available.
+
+#### Do not keep yet: Home Services Assistant
+
+- ANS returned relevant cleaning, plumbing, and HVAC businesses.
+- The tested cleaning and plumbing agents completed A2A tasks successfully,
+  but both returned generic contact-support fallbacks instead of service data.
+
+The discovery and transport work, but the answer quality is currently too weak
+for a polished demo.
+
+#### Iteration 1 decision
+
+Implement two primary Agent A choices first:
+
+1. **Spark — Event Planner**
+2. **Sage — Wellness Concierge**
+
+This satisfies the planned two-to-four Agent A scope using categories backed
+by relevant ANS discovery and useful live A2A responses. Travel and Home
+Services remain documented candidates for a later iteration rather than being
+presented as reliable features now.
+
 ## 2. Add a Small Primary-Agent Configuration
 
 Create one Python configuration containing each Agent A's:
@@ -40,14 +105,36 @@ Create one Python configuration containing each Agent A's:
 
 Keep this as ordinary Python data rather than introducing a database.
 
+### Step 2 implementation result — completed September 19, 2026
+
+`services/primary_agents.py` now defines Spark and Sage in one shared Python
+configuration. Each agent has its identity, description, visual tokens,
+example prompts, supported topic rules, keywords, and the ANS search queries
+verified during Step 1.
+
+Small accessor functions list the agents in display order and safely retrieve
+one by ID. The configuration is not connected to Flask or the UI yet; that is
+intentionally reserved for the following steps.
+
 ## 3. Add Agent A Selection to the Opening Screen
 
-Display three clean Agent A cards before the question form. The user selects
+Display the two verified Agent A cards before the question form. The user selects
 one agent, sees it become active, enters a question related to that role, and
 then selects **Find My Match**.
 
 Only one Agent A can be selected at a time. The example prompt and supporting
 text should change with the selection.
+
+### Step 3 implementation result — completed September 19, 2026
+
+The opening card now renders Spark and Sage directly from the shared Python
+configuration. They behave as an accessible single-choice control. Selecting
+an agent updates its active styling, name, role, description, form label,
+example prompt, and ANS helper text without reloading the page.
+
+Sage is temporarily selected by default so the existing HaloHeat backend demo
+continues to work. The browser stores the selected Agent A ID, but it does not
+send that ID to the API yet; Agent A-aware backend routing belongs to Step 4.
 
 ## 4. Send the Selected Agent A to Flask
 
@@ -84,9 +171,9 @@ matches.
 Keep the selected Agent A visible on the request, ANS search, candidate,
 match, and final-response screens. Use short activity messages such as:
 
-> Atlas identified a need for local activity information.
+> Spark identified a need for catering information.
 >
-> Atlas searched ANS and found four compatible agents.
+> Spark searched ANS and found four compatible agents.
 
 This makes Agent A's orchestration role clear without adding a complex
 dashboard.

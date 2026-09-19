@@ -66,6 +66,40 @@
 
         <div class="request-card">
           <div id="request-view">
+            <section
+              class="primary-agent-picker"
+              aria-labelledby="primary-agent-picker-title"
+            >
+              <div class="primary-agent-picker-heading">
+                <p id="primary-agent-picker-title">Choose Agent A</p>
+                <span>Pick one</span>
+              </div>
+
+              <div
+                class="primary-agent-options"
+                role="radiogroup"
+                aria-label="Primary agent"
+              >
+                {% for agent in primary_agents %}
+                  <button
+                    class="primary-agent-option{% if agent.id == default_primary_agent.id %} primary-agent-option--selected{% endif %}"
+                    type="button"
+                    role="radio"
+                    aria-checked="{{ 'true' if agent.id == default_primary_agent.id else 'false' }}"
+                    data-agent-id="{{ agent.id }}"
+                    data-theme="{{ agent.theme }}"
+                  >
+                    <span class="primary-agent-icon" aria-hidden="true"></span>
+                    <span class="primary-agent-option-copy">
+                      <strong>{{ agent.name }}</strong>
+                      <small>{{ agent.role }}</small>
+                    </span>
+                    <span class="primary-agent-check" aria-hidden="true">✓</span>
+                  </button>
+                {% endfor %}
+              </div>
+            </section>
+
             <div class="request-card-header">
               <div class="agent-avatar" aria-hidden="true">
                 <svg viewBox="0 0 64 64" role="img">
@@ -79,20 +113,29 @@
                 <span>♥</span>
               </div>
               <div>
-                <p class="card-kicker">Your agent</p>
-                <h2>Ready to find the right agent?</h2>
+                <p class="card-kicker">Your selected agent</p>
+                <h2>
+                  <span id="selected-primary-agent-name">{{ default_primary_agent.name }}</span>
+                  <small id="selected-primary-agent-role">{{ default_primary_agent.role }}</small>
+                </h2>
               </div>
             </div>
 
+            <p id="selected-primary-agent-description" class="selected-agent-description">
+              {{ default_primary_agent.description }}
+            </p>
+
             <form id="search-form" class="request-form">
-              <label for="agent-request">What do you need help with?</label>
+              <label id="agent-request-label" for="agent-request">
+                What should {{ default_primary_agent.name }} help with?
+              </label>
               <div class="prompt-field">
                 <textarea
                   id="agent-request"
                   name="request"
                   rows="4"
                   spellcheck="true"
-                >What services does HaloHeat offer, and how much is a drop-in sauna session?</textarea>
+                >{{ default_primary_agent.example_prompts[0] }}</textarea>
                 <span class="prompt-spark" aria-hidden="true">✦</span>
               </div>
 
@@ -113,7 +156,9 @@
 
             <p class="form-note">
               <span aria-hidden="true">⌁</span>
-              We’ll search ANS for compatible agents.
+              <span id="selected-agent-note">
+                {{ default_primary_agent.name }} will search ANS for compatible agents.
+              </span>
             </p>
           </div>
 
@@ -219,6 +264,9 @@
       <span>Connect</span>
     </footer>
 
+    <script id="primary-agent-data" type="application/json">
+      {{ primary_agents | tojson }}
+    </script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   </body>
 </html>

@@ -3,6 +3,7 @@
 // Cache the page elements once so we can reuse them during every search.
 const searchForm = document.querySelector("#search-form");
 const promptInput = document.querySelector("#agent-request");
+const promptLabel = document.querySelector("#agent-request-label");
 const findMatchButton = document.querySelector("#find-match-button");
 const buttonLabel = findMatchButton.querySelector(".button-label");
 const searchStatus = document.querySelector("#search-status");
@@ -24,15 +25,81 @@ const candidateControlStatus = document.querySelector(
 const matchView = document.querySelector("#match-view");
 const matchedAgentName = document.querySelector("#matched-agent-name");
 const matchedAgentAnswer = document.querySelector("#matched-agent-answer");
+const primaryAgentOptions = document.querySelectorAll(".primary-agent-option");
+const selectedPrimaryAgentName = document.querySelector(
+  "#selected-primary-agent-name",
+);
+const selectedPrimaryAgentRole = document.querySelector(
+  "#selected-primary-agent-role",
+);
+const selectedPrimaryAgentDescription = document.querySelector(
+  "#selected-primary-agent-description",
+);
+const selectedAgentNote = document.querySelector("#selected-agent-note");
+
+// Flask renders the safe local configuration into this JSON script element.
+// Parsing it avoids duplicating names, descriptions, and examples in JavaScript.
+const primaryAgentData = JSON.parse(
+  document.querySelector("#primary-agent-data").textContent,
+);
+const primaryAgentsById = new Map(
+  primaryAgentData.map((agent) => [agent.id, agent]),
+);
 
 // Keep the search and selection in memory so Pass can move through the deck
 // and Match can send the currently displayed agent to the Flask backend.
 const searchState = {
+  primaryAgentId: "sage",
   capability: null,
   candidates: [],
   currentIndex: 0,
   selectedCandidate: null,
 };
+
+for (const option of primaryAgentOptions) {
+  option.addEventListener("click", () => {
+    selectPrimaryAgent(option.dataset.agentId);
+  });
+}
+
+function selectPrimaryAgent(agentId) {
+  const agent = primaryAgentsById.get(agentId);
+  if (!agent || agentId === searchState.primaryAgentId) {
+    return;
+  }
+
+  const previousAgent = primaryAgentsById.get(searchState.primaryAgentId);
+  const currentPrompt = promptInput.value.trim();
+  const previousExample = previousAgent?.example_prompts[0] || "";
+
+  searchState.primaryAgentId = agent.id;
+
+  // Use radio semantics so keyboard and screen-reader users receive the same
+  // single-selection behavior as someone clicking the cards visually.
+  for (const option of primaryAgentOptions) {
+    const isSelected = option.dataset.agentId === agent.id;
+    option.classList.toggle("primary-agent-option--selected", isSelected);
+    option.setAttribute("aria-checked", String(isSelected));
+  }
+
+  selectedPrimaryAgentName.textContent = agent.name;
+  selectedPrimaryAgentRole.textContent = agent.role;
+  selectedPrimaryAgentDescription.textContent = agent.description;
+  promptLabel.textContent = `What should ${agent.name} help with?`;
+  selectedAgentNote.textContent =
+    `${agent.name} will search ANS for compatible agents.`;
+
+  // Replace an empty prompt or the previous agent's untouched example. Never
+  // overwrite a question the user has started writing themselves.
+  if (!currentPrompt || currentPrompt === previousExample) {
+    promptInput.value = agent.example_prompts[0];
+  }
+  promptInput.placeholder = agent.example_prompts[0];
+
+  // A message from an earlier search no longer applies to the newly selected
+  // primary agent.
+  searchStatus.hidden = true;
+}
 
 searchForm.addEventListener("submit", async (event) => {
   // A form normally reloads the page. Preventing that lets JavaScript call the

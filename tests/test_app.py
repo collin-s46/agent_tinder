@@ -20,9 +20,15 @@ class SearchRouteTests(unittest.TestCase):
 
     def test_homepage_renders(self):
         response = self.client.get("/")
+        page = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("AgenTinder", response.get_data(as_text=True))
+        self.assertIn("AgenTinder", page)
+        self.assertIn("Spark", page)
+        self.assertIn("Event Planner", page)
+        self.assertIn("Sage", page)
+        self.assertIn("Wellness Concierge", page)
+        self.assertIn('data-agent-id="sage"', page)
 
     def test_search_requires_a_prompt(self):
         response = self.client.post("/api/search", json={})

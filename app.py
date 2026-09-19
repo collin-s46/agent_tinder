@@ -10,6 +10,7 @@ from services.ans_client import (
 )
 from services.a2a_client import A2AClientError, send_message
 from services.capability import UnsupportedCapabilityError, detect_capability
+from services.primary_agents import get_primary_agent, list_primary_agents
 from services.scoring import score_candidate
 
 
@@ -24,7 +25,14 @@ app = Flask(__name__)
 @app.get("/")
 def index():
     """Render the AgenTinder homepage."""
-    return render_template("index.html")
+    # Sage is the temporary default because its HaloHeat example remains
+    # compatible with the current single-scenario backend. Agent-specific
+    # routing will be added in the next iteration step.
+    return render_template(
+        "index.html",
+        primary_agents=list_primary_agents(),
+        default_primary_agent=get_primary_agent("sage"),
+    )
 
 
 @app.post("/api/search")
