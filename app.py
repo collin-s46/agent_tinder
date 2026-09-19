@@ -11,7 +11,7 @@ from services.ans_client import (
 from services.a2a_client import A2AClientError, send_message
 from services.capability import UnsupportedCapabilityError, detect_capability
 from services.primary_agents import get_primary_agent, list_primary_agents
-from services.scoring import score_candidate
+from services.scoring import MINIMUM_COMPATIBILITY_SCORE, score_candidate
 
 
 # Read values from a local .env file into environment variables. This happens
@@ -80,17 +80,28 @@ def search():
     except ANSClientError as error:
         return _error_response("ans_unavailable", str(error), 502)
 
-    # Give each ANS result a small, explainable compatibility score before the
-    # browser renders it as a card.
+    # Score every real ANS result, then hide candidates with too little evidence
+    # that they match the request. No agents are invented or hard-coded here.
     scored_candidates = []
     for candidate in candidates:
         scored_candidate = candidate.copy()
         scored_candidate["compatibility"] = score_candidate(
             prompt,
-            capability.name,
+            capability,
             candidate,
         )
-        scored_candidates.append(scored_candidate)
+        if (
+            scored_candidate["compatibility"]["score"]
+            >= MINIMUM_COMPATIBILITY_SCORE
+        ):
+            scored_candidates.append(scored_candidate)
+
+    # Highest compatibility appears first in the API. The Tinder-style demo
+    # deck may still place one lower match before it so Pass remains visible.
+    scored_candidates.sort(
+        key=lambda candidate: candidate["compatibility"]["score"],
+        reverse=True,
+    )
 
     # jsonify creates a JSON response and sets the correct Content-Type header.
     # Candidate records are already cleaned up by services/ans_client.py.

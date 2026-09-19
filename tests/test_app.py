@@ -79,7 +79,7 @@ class SearchRouteTests(unittest.TestCase):
         self.assertEqual(response.json["capability_label"], "Sauna")
         self.assertEqual(response.json["search_query"], "sauna")
         self.assertEqual(response.json["candidates"][0]["agent_id"], "agent-123")
-        self.assertEqual(response.json["candidates"][0]["compatibility"]["score"], 60)
+        self.assertEqual(response.json["candidates"][0]["compatibility"]["score"], 65)
 
         # This also verifies that capability detection produced the correct ANS
         # search phrase.
@@ -102,6 +102,55 @@ class SearchRouteTests(unittest.TestCase):
         self.assertEqual(response.json["capability"], "catering")
         self.assertEqual(response.json["search_query"], "catering")
         mock_search_agents.assert_called_once_with("catering")
+
+    @patch("app.search_agents")
+    def test_search_filters_weak_candidates_and_keeps_strong_matches(
+        self,
+        mock_search_agents,
+    ):
+        mock_search_agents.return_value = [
+            {
+                "agent_id": "weak-agent",
+                "ans_name": "ans://v1.0.0.support.unrelated.example",
+                "name": "Unrelated Support Agent",
+                "description": "Answers general questions.",
+                "status": "ACTIVE",
+                "protocol": "A2A",
+                "transports": ["HTTP"],
+                "scores": {"trust": 37},
+                "skills": [],
+            },
+            {
+                "agent_id": "strong-agent",
+                "ans_name": "ans://v1.0.0.catering.example",
+                "name": "Graduation Party Catering Agent",
+                "description": "Catering menus for graduation parties.",
+                "status": "ACTIVE",
+                "protocol": "A2A",
+                "transports": ["HTTP"],
+                "scores": {"trust": 37},
+                "skills": [],
+            },
+        ]
+
+        response = self.client.post(
+            "/api/search",
+            json={
+                "primary_agent_id": "spark",
+                "prompt": "What catering options are available for a graduation party?",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json["candidates"]), 1)
+        self.assertEqual(
+            response.json["candidates"][0]["agent_id"],
+            "strong-agent",
+        )
+        self.assertEqual(
+            response.json["candidates"][0]["compatibility"]["score"],
+            100,
+        )
 
     @patch("app.search_agents")
     def test_search_reports_invalid_configuration(self, mock_search_agents):

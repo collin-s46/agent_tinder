@@ -186,6 +186,16 @@ word `HaloHeat`. The score should consider:
 Reject extremely weak results instead of presenting unrelated agents as good
 matches.
 
+### Step 6 implementation result — completed September 19, 2026
+
+Compatibility scoring is now generic and totals 100 points: 40 for capability
+relevance, up to 25 for prompt/profile alignment, 20 for A2A-over-HTTP support,
+10 for active ANS status, and 5 for trust or stable registry metadata.
+
+Candidates scoring below 50 are removed, and the remaining real ANS results
+are returned in descending score order. The scorer contains no HaloHeat,
+Spark, Sage, event, or wellness-specific branches.
+
 ## 7. Make Agent A Visible Throughout the Flow
 
 Keep the selected Agent A visible on the request, ANS search, candidate,
