@@ -2,11 +2,15 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 
 from services.ans_client import (
+    ANSAgentNotFoundError,
     ANSClientError,
     ANSConfigurationError,
+    get_agent,
     search_agents,
 )
+from services.a2a_client import A2AClientError, send_message
 from services.capability import UnsupportedCapabilityError, detect_capability
+from services.scoring import score_candidate
 
 
 # Read values from a local .env file into environment variables. This happens
@@ -52,9 +56,21 @@ def search():
     try:
         candidates = search_agents(capability.search_query)
     except ANSConfigurationError as error:
-        return _error_response("ans_not_configured", str(error), 503)
+        return _error_response("ans_configuration", str(error), 503)
     except ANSClientError as error:
         return _error_response("ans_unavailable", str(error), 502)
+
+    # Give each ANS result a small, explainable compatibility score before the
+    # browser renders it as a card.
+    scored_candidates = []
+    for candidate in candidates:
+        scored_candidate = candidate.copy()
+        scored_candidate["compatibility"] = score_candidate(
+            prompt,
+            capability.name,
+            candidate,
+        )
+        scored_candidates.append(scored_candidate)
 
     # jsonify creates a JSON response and sets the correct Content-Type header.
     # Candidate records are already cleaned up by services/ans_client.py.
@@ -63,7 +79,42 @@ def search():
             "prompt": prompt,
             "capability": capability.name,
             "search_query": capability.search_query,
-            "candidates": candidates,
+            "candidates": scored_candidates,
+        }
+    )
+
+
+@app.post("/api/match")
+def connect_match():
+    """Resolve a selected ANS agent and send it the user's request over A2A."""
+    payload = request.get_json(silent=True) or {}
+    agent_id = payload.get("agent_id", "")
+    prompt = payload.get("prompt", "")
+
+    if not isinstance(agent_id, str) or not agent_id.strip():
+        return _error_response("missing_agent", "Please select an agent.", 400)
+    if not isinstance(prompt, str) or not prompt.strip():
+        return _error_response("missing_prompt", "Please enter a request.", 400)
+
+    # Resolve the ID through ANS instead of accepting an agent URL from the
+    # browser. This keeps ANS as the source of truth for the remote endpoint.
+    try:
+        agent = get_agent(agent_id.strip())
+    except ANSAgentNotFoundError as error:
+        return _error_response("agent_not_found", str(error), 404)
+    except ANSClientError as error:
+        return _error_response("ans_unavailable", str(error), 502)
+
+    try:
+        result = send_message(agent, prompt.strip())
+    except A2AClientError as error:
+        return _error_response("a2a_failed", str(error), 502)
+
+    return jsonify(
+        {
+            "agent_id": agent["agent_id"],
+            "agent_name": agent["name"],
+            **result,
         }
     )
 

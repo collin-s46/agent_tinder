@@ -65,8 +65,71 @@
         <div class="card-shadow card-shadow-two" aria-hidden="true"></div>
 
         <div class="request-card">
-          <div class="request-card-header">
-            <div class="agent-avatar" aria-hidden="true">
+          <div id="request-view">
+            <div class="request-card-header">
+              <div class="agent-avatar" aria-hidden="true">
+                <svg viewBox="0 0 64 64" role="img">
+                  <path d="M32 8v8M27 8h10" />
+                  <rect x="11" y="16" width="42" height="36" rx="15" />
+                  <path d="M11 33H6M58 33h-5" />
+                  <circle cx="25" cy="32" r="3" />
+                  <circle cx="39" cy="32" r="3" />
+                  <path d="M24 42c4.8 3.2 11.2 3.2 16 0" />
+                </svg>
+                <span>♥</span>
+              </div>
+              <div>
+                <p class="card-kicker">Your agent</p>
+                <h2>Ready to find the right agent?</h2>
+              </div>
+            </div>
+
+            <form id="search-form" class="request-form">
+              <label for="agent-request">What do you need help with?</label>
+              <div class="prompt-field">
+                <textarea
+                  id="agent-request"
+                  name="request"
+                  rows="4"
+                  spellcheck="true"
+                >What services does HaloHeat offer, and how much is a drop-in sauna session?</textarea>
+                <span class="prompt-spark" aria-hidden="true">✦</span>
+              </div>
+
+              <button id="find-match-button" type="submit">
+                <span class="button-heart" aria-hidden="true">♥</span>
+                <span class="button-label">Find My Match</span>
+                <span class="button-arrow" aria-hidden="true">→</span>
+              </button>
+
+              <p
+                id="search-status"
+                class="search-status"
+                role="status"
+                aria-live="polite"
+                hidden
+              ></p>
+            </form>
+
+            <p class="form-note">
+              <span aria-hidden="true">⌁</span>
+              We’ll search ANS for compatible agents.
+            </p>
+          </div>
+
+          <section
+            id="candidate-view"
+            class="candidate-view"
+            aria-labelledby="candidate-name"
+            tabindex="-1"
+            hidden
+          >
+            <div class="candidate-topline">
+              <span class="ans-badge"><b>✓</b> Discovered via ANS</span>
+              <span class="candidate-position" id="candidate-position"></span>
+            </div>
+
+            <div class="candidate-avatar" aria-hidden="true">
               <svg viewBox="0 0 64 64" role="img">
                 <path d="M32 8v8M27 8h10" />
                 <rect x="11" y="16" width="42" height="36" rx="15" />
@@ -77,35 +140,68 @@
               </svg>
               <span>♥</span>
             </div>
-            <div>
-              <p class="card-kicker">Your agent</p>
-              <h2>Ready to find the right agent?</h2>
-            </div>
-          </div>
 
-          <form class="request-form">
-            <label for="agent-request">What do you need help with?</label>
-            <div class="prompt-field">
-              <textarea
-                id="agent-request"
-                name="request"
-                rows="4"
-                spellcheck="true"
-              >What services does HaloHeat offer, and how much is a drop-in sauna session?</textarea>
-              <span class="prompt-spark" aria-hidden="true">✦</span>
+            <div class="compatibility-score">
+              <strong id="candidate-score">--%</strong>
+              <span>compatible</span>
             </div>
 
-            <button id="find-match-button" type="button">
-              <span class="button-heart" aria-hidden="true">♥</span>
-              Find My Match
-              <span class="button-arrow" aria-hidden="true">→</span>
-            </button>
-          </form>
+            <div class="candidate-label-row">
+              <p class="candidate-kicker">Potential match</p>
+              <span class="active-badge" id="candidate-status">Active</span>
+            </div>
+            <h2 id="candidate-name"></h2>
+            <p id="candidate-description" class="candidate-description"></p>
 
-          <p class="form-note">
-            <span aria-hidden="true">⌁</span>
-            We’ll search ANS for compatible agents.
-          </p>
+            <div class="candidate-skills">
+              <p>Capabilities</p>
+              <div id="candidate-skill-list" class="skill-list"></div>
+            </div>
+
+            <p id="candidate-ans-name" class="candidate-ans-name"></p>
+
+            <div class="candidate-controls" aria-label="Candidate actions">
+              <button id="pass-button" class="pass-button" type="button">
+                <span aria-hidden="true">×</span>
+                Pass
+              </button>
+              <button id="match-button" class="match-button" type="button">
+                <span aria-hidden="true">♥</span>
+                Match
+              </button>
+            </div>
+
+            <p
+              id="candidate-control-status"
+              class="candidate-control-status"
+              role="status"
+              aria-live="polite"
+            ></p>
+          </section>
+
+          <section
+            id="match-view"
+            class="match-view"
+            aria-labelledby="match-title"
+            tabindex="-1"
+            hidden
+          >
+            <p class="match-kicker">Compatibility confirmed</p>
+            <h2 id="match-title">It’s a Match!</h2>
+
+            <div class="matched-agents" aria-hidden="true">
+              <div class="matched-avatar">AI</div>
+              <span>♥</span>
+              <div class="matched-avatar matched-avatar-agent">AI</div>
+            </div>
+
+            <p class="match-pair">
+              Your Agent <span>+</span> <strong id="matched-agent-name"></strong>
+            </p>
+            <p class="match-message">
+              These agents are ready to connect. A2A communication comes next.
+            </p>
+          </section>
         </div>
       </section>
     </main>

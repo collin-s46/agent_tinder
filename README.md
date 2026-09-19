@@ -12,8 +12,9 @@ cp .env.example .env
 flask --app app run --debug
 ```
 
-Add your GoDaddy API key and secret to `.env` before using the ANS search API.
-The `.env` file is ignored by Git and should never be committed.
+The public ANS discovery endpoint does not require credentials. The optional
+`.env` file lets you change the ANS base URL or request timeout and is ignored
+by Git.
 
 Then open <http://127.0.0.1:5000>.
 

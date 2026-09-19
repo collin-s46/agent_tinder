@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import Mock, patch
 
-from services.ans_client import ANSConfigurationError, search_agents
+from services.ans_client import ANSConfigurationError, get_agent, search_agents
 
 
 class ANSClientTests(unittest.TestCase):
@@ -45,11 +45,9 @@ class ANSClientTests(unittest.TestCase):
         }
         mock_get.return_value = response
 
-        # patch.dict supplies safe fake credentials only for this test. No real
-        # key or secret belongs in source code or test fixtures.
+        # patch.dict keeps this test independent from the developer's real .env
+        # file and points the request at a fake base URL.
         environment = {
-            "GODADDY_API_KEY": "test-key",
-            "GODADDY_API_SECRET": "test-secret",
             "ANS_BASE_URL": "https://api.godaddy.test",
             "ANS_TIMEOUT_SECONDS": "7",
         }
@@ -63,7 +61,7 @@ class ANSClientTests(unittest.TestCase):
         mock_get.assert_called_once()
 
         # Inspect the mocked request to prove the client used the correct URL,
-        # filters, authentication format, and timeout.
+        # filters, public headers, and timeout.
         request = mock_get.call_args
         self.assertEqual(
             request.args[0],
@@ -72,18 +70,55 @@ class ANSClientTests(unittest.TestCase):
         self.assertEqual(request.kwargs["params"]["query"], "HaloHeat Sauna")
         self.assertEqual(request.kwargs["params"]["protocols"], "A2A")
         self.assertEqual(request.kwargs["params"]["transports"], "HTTP")
-        self.assertEqual(
-            request.kwargs["headers"]["Authorization"],
-            "sso-key test-key:test-secret",
-        )
+        self.assertNotIn("Authorization", request.kwargs["headers"])
         self.assertEqual(request.kwargs["timeout"], 7.0)
 
-    def test_search_requires_credentials(self):
-        # With an empty environment, the client should fail before it attempts a
-        # network request and should tell the developer what configuration lacks.
-        with patch.dict(os.environ, {}, clear=True):
+    def test_search_rejects_an_invalid_timeout(self):
+        # Invalid local configuration should fail before any network request.
+        with patch.dict(
+            os.environ,
+            {"ANS_TIMEOUT_SECONDS": "not-a-number"},
+            clear=True,
+        ):
             with self.assertRaises(ANSConfigurationError):
                 search_agents("HaloHeat Sauna")
+
+    @patch("services.ans_client.requests.get")
+    def test_get_agent_resolves_an_id_through_ans(self, mock_get):
+        response = Mock()
+        response.json.return_value = {
+            "agentId": "agent-123",
+            "ansName": "ans://v1.0.0.haloheat.example",
+            "agentDisplayName": "HaloHeat Support Agent",
+            "agentDescription": "Answers customer questions.",
+            "lifecycle": {"status": "ACTIVE"},
+            "endpoints": [
+                {
+                    "agentUrl": "https://haloheat.example/a2a",
+                    "metaDataUrl": (
+                        "https://haloheat.example/.well-known/agent-card.json"
+                    ),
+                    "protocol": "A2A",
+                    "transports": ["HTTP"],
+                    "functions": [],
+                }
+            ],
+        }
+        mock_get.return_value = response
+
+        with patch.dict(
+            os.environ,
+            {"ANS_BASE_URL": "https://api.godaddy.test"},
+            clear=True,
+        ):
+            agent = get_agent("agent-123")
+
+        self.assertEqual(agent["agent_id"], "agent-123")
+        self.assertEqual(agent["agent_url"], "https://haloheat.example/a2a")
+        self.assertEqual(
+            mock_get.call_args.args[0],
+            "https://api.godaddy.test/v1/ans/registered-agents/agent-123",
+        )
 
 
 if __name__ == "__main__":

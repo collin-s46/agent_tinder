@@ -1,6 +1,7 @@
 """Client for discovering A2A agents through GoDaddy ANS."""
 
 import os
+from urllib.parse import quote
 
 import requests
 
@@ -10,22 +11,18 @@ class ANSClientError(RuntimeError):
 
 
 class ANSConfigurationError(ANSClientError):
-    """Raised when required local ANS configuration is missing."""
+    """Raised when local ANS configuration is invalid."""
+
+
+class ANSAgentNotFoundError(ANSClientError):
+    """Raised when a selected agent no longer exists in ANS."""
 
 
 def search_agents(query, page_size=5):
     """Search ANS and return normalized A2A-over-HTTP candidates."""
-    # Credentials stay on the Flask server. They are never returned to the
-    # browser or included in an AgenTinder API response.
-    api_key = os.getenv("GODADDY_API_KEY")
-    api_secret = os.getenv("GODADDY_API_SECRET")
-
-    if not api_key or not api_secret:
-        raise ANSConfigurationError(
-            "GoDaddy credentials are missing. Add them to your .env file."
-        )
-
-    # These settings have safe defaults but can be changed in .env for testing.
+    # ANS discovery is a public, read-only registry endpoint, so this request
+    # does not send the user's PAT or any other credential. These settings have
+    # safe defaults but can be changed in .env for testing.
     base_url = os.getenv("ANS_BASE_URL", "https://api.godaddy.com").rstrip("/")
     timeout = _read_timeout()
 
@@ -39,11 +36,10 @@ def search_agents(query, page_size=5):
         "transports": "HTTP",
     }
 
-    # GoDaddy expects the key and secret in this Authorization header format.
-    # Do not print or log this dictionary because it contains the secret.
+    # Ask GoDaddy to return JSON. No Authorization header is needed for this
+    # public discovery operation.
     headers = {
         "Accept": "application/json",
-        "Authorization": f"sso-key {api_key}:{api_secret}",
     }
 
     try:
@@ -81,6 +77,50 @@ def search_agents(query, page_size=5):
             candidates.append(candidate)
 
     return candidates
+
+
+def get_agent(agent_id):
+    """Retrieve one selected agent from ANS and normalize its metadata."""
+    if not isinstance(agent_id, str) or not agent_id.strip():
+        raise ANSAgentNotFoundError("The selected agent ID is missing.")
+
+    base_url = os.getenv("ANS_BASE_URL", "https://api.godaddy.com").rstrip("/")
+    timeout = _read_timeout()
+
+    # quote() keeps the ID inside one URL path segment. The browser supplies only
+    # an ID; it never gets to choose the remote URL that Flask will contact.
+    safe_agent_id = quote(agent_id.strip(), safe="")
+    url = f"{base_url}/v1/ans/registered-agents/{safe_agent_id}"
+
+    try:
+        response = requests.get(
+            url,
+            params={"profile": "default"},
+            headers={"Accept": "application/json"},
+            timeout=timeout,
+        )
+        response.raise_for_status()
+    except requests.RequestException as error:
+        status = getattr(getattr(error, "response", None), "status_code", None)
+        if status == 404:
+            raise ANSAgentNotFoundError(
+                "The selected agent is no longer available in ANS."
+            ) from error
+        detail = f" (HTTP {status})" if status else ""
+        raise ANSClientError(f"ANS agent lookup failed{detail}.") from error
+
+    try:
+        payload = response.json()
+    except ValueError as error:
+        raise ANSClientError("ANS returned invalid agent metadata.") from error
+
+    candidate = _normalize_agent(payload)
+    if candidate is None:
+        raise ANSClientError(
+            "The selected ANS agent has no usable A2A-over-HTTP endpoint."
+        )
+
+    return candidate
 
 
 def _read_timeout():

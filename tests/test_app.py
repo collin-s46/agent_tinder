@@ -2,7 +2,12 @@ import unittest
 from unittest.mock import patch
 
 from app import app
-from services.ans_client import ANSClientError, ANSConfigurationError
+from services.a2a_client import A2AClientError
+from services.ans_client import (
+    ANSAgentNotFoundError,
+    ANSClientError,
+    ANSConfigurationError,
+)
 
 
 class SearchRouteTests(unittest.TestCase):
@@ -60,14 +65,15 @@ class SearchRouteTests(unittest.TestCase):
         self.assertEqual(response.json["capability"], "customer-support")
         self.assertEqual(response.json["search_query"], "HaloHeat Sauna")
         self.assertEqual(response.json["candidates"][0]["agent_id"], "agent-123")
+        self.assertEqual(response.json["candidates"][0]["compatibility"]["score"], 60)
 
         # This also verifies that capability detection produced the correct ANS
         # search phrase.
         mock_search_agents.assert_called_once_with("HaloHeat Sauna")
 
     @patch("app.search_agents")
-    def test_search_reports_missing_configuration(self, mock_search_agents):
-        mock_search_agents.side_effect = ANSConfigurationError("Missing credentials.")
+    def test_search_reports_invalid_configuration(self, mock_search_agents):
+        mock_search_agents.side_effect = ANSConfigurationError("Invalid timeout.")
 
         response = self.client.post(
             "/api/search",
@@ -75,7 +81,7 @@ class SearchRouteTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 503)
-        self.assertEqual(response.json["error"]["code"], "ans_not_configured")
+        self.assertEqual(response.json["error"]["code"], "ans_configuration")
 
     @patch("app.search_agents")
     def test_search_reports_ans_failures(self, mock_search_agents):
@@ -88,6 +94,77 @@ class SearchRouteTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json["error"]["code"], "ans_unavailable")
+
+    def test_match_requires_an_agent_id(self):
+        response = self.client.post(
+            "/api/match",
+            json={"prompt": "What services does HaloHeat offer?"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["error"]["code"], "missing_agent")
+
+    @patch("app.send_message")
+    @patch("app.get_agent")
+    def test_match_returns_a2a_answer(self, mock_get_agent, mock_send_message):
+        mock_get_agent.return_value = {
+            "agent_id": "agent-123",
+            "name": "HaloHeat Support Agent",
+        }
+        mock_send_message.return_value = {
+            "task_id": "task-123",
+            "context_id": "context-123",
+            "answer": "Drop-in sessions are $49.",
+            "protocol_version": "0.3.0",
+        }
+
+        response = self.client.post(
+            "/api/match",
+            json={
+                "agent_id": "agent-123",
+                "prompt": "What services does HaloHeat offer?",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["agent_name"], "HaloHeat Support Agent")
+        self.assertEqual(response.json["answer"], "Drop-in sessions are $49.")
+        mock_get_agent.assert_called_once_with("agent-123")
+
+    @patch("app.get_agent")
+    def test_match_reports_a_missing_agent(self, mock_get_agent):
+        mock_get_agent.side_effect = ANSAgentNotFoundError("Agent not found.")
+
+        response = self.client.post(
+            "/api/match",
+            json={
+                "agent_id": "missing-agent",
+                "prompt": "What services does HaloHeat offer?",
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json["error"]["code"], "agent_not_found")
+
+    @patch("app.send_message")
+    @patch("app.get_agent")
+    def test_match_reports_a2a_failures(self, mock_get_agent, mock_send_message):
+        mock_get_agent.return_value = {
+            "agent_id": "agent-123",
+            "name": "HaloHeat Support Agent",
+        }
+        mock_send_message.side_effect = A2AClientError("Agent unavailable.")
+
+        response = self.client.post(
+            "/api/match",
+            json={
+                "agent_id": "agent-123",
+                "prompt": "What services does HaloHeat offer?",
+            },
+        )
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.json["error"]["code"], "a2a_failed")
 
 
 if __name__ == "__main__":
