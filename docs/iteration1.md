@@ -216,6 +216,17 @@ match, and final-response screens. Use short activity messages such as:
 This makes Agent A's orchestration role clear without adding a complex
 dashboard.
 
+### Step 7 implementation result — completed September 19, 2026
+
+The selected Agent A is now named throughout the experience. Search messages
+show who is searching ANS, candidate cards show which capability that agent
+identified, and the completed match names and visually represents both Agent A
+and Agent B. The final response also states who contacted whom through A2A.
+
+This step uses the Agent A identity already validated by the search endpoint.
+The final match request will independently validate and carry that identity in
+Step 8.
+
 ## 8. Let Agent A Perform the A2A Delegation
 
 When the user chooses Match, send `primary_agent_id`, the selected ANS
@@ -229,6 +240,18 @@ When the user chooses Match, send `primary_agent_id`, the selected ANS
 
 For this MVP, Agent A will transparently wrap and present Agent B's response.
 It will not use an LLM to rewrite the answer.
+
+### Step 8 implementation result — completed September 19, 2026
+
+The Match request now carries Agent A's local ID alongside Agent B's ANS ID and
+the original prompt. Flask independently validates Agent A, rechecks that the
+prompt belongs to its configured role, re-resolves Agent B through ANS,
+validates Agent B's public Agent Card, and sends the unchanged request through
+A2A.
+
+The completed response includes the server-validated identities of both agents
+plus the delegated capability and Agent B's answer. The result screen uses
+these server-confirmed values rather than trusting browser-supplied names.
 
 ## Intended Flow
 

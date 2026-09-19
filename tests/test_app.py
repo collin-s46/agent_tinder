@@ -29,12 +29,30 @@ class SearchRouteTests(unittest.TestCase):
         self.assertIn("Sage", page)
         self.assertIn("Wellness Concierge", page)
         self.assertIn('data-agent-id="sage"', page)
+        self.assertIn('id="candidate-primary-agent-name"', page)
+        self.assertIn('id="matched-primary-agent-name"', page)
+        self.assertIn('id="matched-primary-avatar-name"', page)
 
     def test_search_requires_a_prompt(self):
         response = self.client.post("/api/search", json={})
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["error"]["code"], "missing_prompt")
+
+    def test_search_rejects_a_non_object_json_body(self):
+        response = self.client.post("/api/search", json=["not", "an", "object"])
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["error"]["code"], "invalid_request")
+
+    def test_search_rejects_an_overlong_prompt(self):
+        response = self.client.post(
+            "/api/search",
+            json={"primary_agent_id": "sage", "prompt": "s" * 2_001},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["error"]["code"], "prompt_too_long")
 
     def test_search_rejects_an_unsupported_prompt(self):
         response = self.client.post(
@@ -233,15 +251,23 @@ class SearchRouteTests(unittest.TestCase):
         response = self.client.post(
             "/api/match",
             json={
+                "primary_agent_id": "sage",
                 "agent_id": "agent-123",
                 "prompt": "What services does HaloHeat offer?",
             },
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["primary_agent"]["id"], "sage")
+        self.assertEqual(response.json["primary_agent"]["name"], "Sage")
+        self.assertEqual(response.json["capability"], "sauna")
         self.assertEqual(response.json["agent_name"], "HaloHeat Support Agent")
         self.assertEqual(response.json["answer"], "Drop-in sessions are $49.")
         mock_get_agent.assert_called_once_with("agent-123")
+        mock_send_message.assert_called_once_with(
+            mock_get_agent.return_value,
+            "What services does HaloHeat offer?",
+        )
 
     @patch("app.get_agent")
     def test_match_reports_a_missing_agent(self, mock_get_agent):
@@ -250,6 +276,7 @@ class SearchRouteTests(unittest.TestCase):
         response = self.client.post(
             "/api/match",
             json={
+                "primary_agent_id": "sage",
                 "agent_id": "missing-agent",
                 "prompt": "What services does HaloHeat offer?",
             },
@@ -270,6 +297,7 @@ class SearchRouteTests(unittest.TestCase):
         response = self.client.post(
             "/api/match",
             json={
+                "primary_agent_id": "sage",
                 "agent_id": "agent-123",
                 "prompt": "What services does HaloHeat offer?",
             },
@@ -277,6 +305,39 @@ class SearchRouteTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json["error"]["code"], "a2a_failed")
+
+    @patch("app.get_agent")
+    def test_match_requires_a_valid_primary_agent(self, mock_get_agent):
+        response = self.client.post(
+            "/api/match",
+            json={
+                "agent_id": "agent-123",
+                "prompt": "What services does HaloHeat offer?",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json["error"]["code"], "invalid_primary_agent"
+        )
+        mock_get_agent.assert_not_called()
+
+    @patch("app.get_agent")
+    def test_match_rejects_a_prompt_outside_agent_a_role(self, mock_get_agent):
+        response = self.client.post(
+            "/api/match",
+            json={
+                "primary_agent_id": "spark",
+                "agent_id": "agent-123",
+                "prompt": "What services does HaloHeat offer?",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(
+            response.json["error"]["code"], "unsupported_capability"
+        )
+        mock_get_agent.assert_not_called()
 
 
 if __name__ == "__main__":

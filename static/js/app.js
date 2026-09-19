@@ -16,6 +16,12 @@ const candidateStatus = document.querySelector("#candidate-status");
 const candidateSkillList = document.querySelector("#candidate-skill-list");
 const candidateAnsName = document.querySelector("#candidate-ans-name");
 const candidatePosition = document.querySelector("#candidate-position");
+const candidatePrimaryAgentName = document.querySelector(
+  "#candidate-primary-agent-name",
+);
+const candidateCapabilityLabel = document.querySelector(
+  "#candidate-capability-label",
+);
 const passButton = document.querySelector("#pass-button");
 const matchButton = document.querySelector("#match-button");
 const matchButtonLabel = matchButton.querySelector(".match-button-label");
@@ -23,8 +29,26 @@ const candidateControlStatus = document.querySelector(
   "#candidate-control-status",
 );
 const matchView = document.querySelector("#match-view");
+const matchKicker = document.querySelector("#match-kicker");
+const matchMessage = document.querySelector("#match-message");
+const matchedPrimaryAgentName = document.querySelector(
+  "#matched-primary-agent-name",
+);
 const matchedAgentName = document.querySelector("#matched-agent-name");
 const matchedAgentAnswer = document.querySelector("#matched-agent-answer");
+const matchedPrimaryAvatarInitials = document.querySelector(
+  "#matched-primary-avatar-initials",
+);
+const matchedPrimaryAvatarName = document.querySelector(
+  "#matched-primary-avatar-name",
+);
+const matchedAgentAvatarInitials = document.querySelector(
+  "#matched-agent-avatar-initials",
+);
+const matchedAgentAvatarName = document.querySelector(
+  "#matched-agent-avatar-name",
+);
+const agentResponseTitle = document.querySelector("#agent-response-title");
 const primaryAgentOptions = document.querySelectorAll(".primary-agent-option");
 const selectedPrimaryAgentName = document.querySelector(
   "#selected-primary-agent-name",
@@ -50,7 +74,9 @@ const primaryAgentsById = new Map(
 // and Match can send the currently displayed agent to the Flask backend.
 const searchState = {
   primaryAgentId: "sage",
+  primaryAgent: null,
   capability: null,
+  capabilityLabel: null,
   candidates: [],
   currentIndex: 0,
   selectedCandidate: null,
@@ -73,6 +99,10 @@ function selectPrimaryAgent(agentId) {
   const previousExample = previousAgent?.example_prompts[0] || "";
 
   searchState.primaryAgentId = agent.id;
+  searchState.primaryAgent = null;
+  searchState.capability = null;
+  searchState.capabilityLabel = null;
+  searchState.candidates = [];
 
   // Use radio semantics so keyboard and screen-reader users receive the same
   // single-selection behavior as someone clicking the cards visually.
@@ -114,7 +144,13 @@ searchForm.addEventListener("submit", async (event) => {
   }
 
   setSearching(true);
-  showStatus("Searching ANS for compatible agents…", "loading");
+  const selectedPrimaryAgent = primaryAgentsById.get(
+    searchState.primaryAgentId,
+  );
+  showStatus(
+    `${selectedPrimaryAgent.name} is searching ANS for compatible agents…`,
+    "loading",
+  );
 
   try {
     // Send the selected local Agent A ID with the prompt. Flask validates the
@@ -138,7 +174,9 @@ searchForm.addEventListener("submit", async (event) => {
       throw new Error(data.error?.message || "The agent search failed.");
     }
 
+    searchState.primaryAgent = data.primary_agent;
     searchState.capability = data.capability;
+    searchState.capabilityLabel = data.capability_label;
     searchState.candidates = buildDemoDeck(data.candidates);
     searchState.currentIndex = 0;
     searchState.selectedCandidate = null;
@@ -151,7 +189,7 @@ searchForm.addEventListener("submit", async (event) => {
 
     const noun = count === 1 ? "agent" : "agents";
     showStatus(
-      `${count} compatible ${noun} discovered through ANS.`,
+      `${data.primary_agent.name} found ${count} compatible ${noun} through ANS.`,
       "success",
     );
 
@@ -190,6 +228,8 @@ function renderCandidate(candidate) {
   candidateStatus.textContent = candidate.status || "Unknown";
   candidateAnsName.textContent = candidate.ans_name;
   candidatePosition.textContent = `${searchState.currentIndex + 1} of ${searchState.candidates.length}`;
+  candidatePrimaryAgentName.textContent = searchState.primaryAgent.name;
+  candidateCapabilityLabel.textContent = searchState.capabilityLabel;
   candidateControlStatus.textContent = "";
 
   candidateSkillList.replaceChildren();
@@ -253,14 +293,16 @@ matchButton.addEventListener("click", async () => {
   candidateControlStatus.textContent = `Connecting with ${candidate.name} over A2A…`;
 
   try {
-    // Only send the registry ID and original prompt. Flask resolves the agent
-    // through ANS again, so the browser never supplies a trusted endpoint URL.
+    // Send only Agent A's short local ID, Agent B's registry ID, and the
+    // original prompt. Flask independently validates both identities and never
+    // accepts a remote endpoint URL from the browser.
     const response = await fetch("/api/match", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        primary_agent_id: searchState.primaryAgentId,
         agent_id: candidate.agent_id,
         prompt,
       }),
@@ -273,9 +315,25 @@ matchButton.addEventListener("click", async () => {
     }
 
     // Save and display the confirmed result only after the agent completes its
-    // task. textContent keeps the external response safely escaped as text.
+    // task. Use Flask's validated Agent A identity instead of browser config.
+    // textContent keeps the external response safely escaped as text.
     searchState.selectedCandidate = candidate;
-    matchedAgentName.textContent = data.agent_name || candidate.name;
+    searchState.primaryAgent = data.primary_agent;
+    searchState.capability = data.capability;
+    searchState.capabilityLabel = data.capability_label;
+    const primaryAgent = data.primary_agent;
+    const agentName = data.agent_name || candidate.name;
+
+    matchedPrimaryAgentName.textContent = primaryAgent.name;
+    matchedAgentName.textContent = agentName;
+    matchedPrimaryAvatarInitials.textContent = getInitials(primaryAgent.name);
+    matchedPrimaryAvatarName.textContent = primaryAgent.name;
+    matchedAgentAvatarInitials.textContent = getInitials(agentName);
+    matchedAgentAvatarName.textContent = agentName;
+    matchKicker.textContent = `${primaryAgent.name} completed the connection`;
+    matchMessage.textContent =
+      `${primaryAgent.name} contacted ${agentName} successfully through A2A.`;
+    agentResponseTitle.textContent = `${agentName} replied`;
     matchedAgentAnswer.textContent = data.answer;
 
     candidateView.hidden = true;
@@ -292,9 +350,9 @@ matchButton.addEventListener("click", async () => {
 });
 
 function buildDemoDeck(candidates) {
-  // The PRD demo passes one candidate before finding the strongest match. ANS
-  // ranks HaloHeat first, so arrange one real alternative before the highest-
-  // scoring result. No records are invented or removed.
+  // The PRD demo passes one candidate before finding the strongest match, so
+  // arrange one real alternative before the top score. No records are invented
+  // or removed.
   if (candidates.length < 2) {
     return candidates;
   }
@@ -318,4 +376,16 @@ function setMatching(isMatching) {
   // its A2A request is in flight.
   setCandidateControlsDisabled(isMatching);
   matchButtonLabel.textContent = isMatching ? "Connecting…" : "Match";
+}
+
+function getInitials(name) {
+  // Two short initials distinguish Agent A and Agent B without needing remote
+  // profile images, which ANS does not guarantee.
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
 }

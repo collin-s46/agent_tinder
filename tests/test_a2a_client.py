@@ -30,9 +30,9 @@ class A2AClientTests(unittest.TestCase):
         mock_get.return_value = card_response
 
         message_response = Mock()
-        message_response.json.return_value = {
+        message_response.json.side_effect = lambda: {
             "jsonrpc": "2.0",
-            "id": "rpc-123",
+            "id": mock_post.call_args.kwargs["json"]["id"],
             "result": {
                 "kind": "task",
                 "id": "task-123",
@@ -70,6 +70,40 @@ class A2AClientTests(unittest.TestCase):
             "What services does HaloHeat offer?",
         )
         self.assertEqual(mock_post.call_args.kwargs["timeout"], 12.0)
+
+    @patch("services.a2a_client.requests.post")
+    @patch("services.a2a_client.requests.get")
+    def test_send_message_rejects_a_mismatched_response_id(
+        self,
+        mock_get,
+        mock_post,
+    ):
+        card_response = Mock()
+        card_response.json.return_value = self.agent_card
+        mock_get.return_value = card_response
+
+        message_response = Mock()
+        message_response.json.return_value = {
+            "jsonrpc": "2.0",
+            "id": "a-different-request",
+            "result": {"kind": "message", "parts": []},
+        }
+        mock_post.return_value = message_response
+
+        with self.assertRaisesRegex(A2AClientError, "invalid A2A response"):
+            send_message(self.agent, "Hello")
+
+    @patch("services.a2a_client.requests.get")
+    def test_send_message_rejects_a_card_for_another_endpoint(self, mock_get):
+        card_response = Mock()
+        card_response.json.return_value = {
+            **self.agent_card,
+            "url": "https://haloheat.example/another-agent",
+        }
+        mock_get.return_value = card_response
+
+        with self.assertRaisesRegex(A2AClientError, "does not match"):
+            send_message(self.agent, "Hello")
 
     @patch("services.a2a_client.requests.get")
     def test_send_message_rejects_unsupported_protocol_version(self, mock_get):

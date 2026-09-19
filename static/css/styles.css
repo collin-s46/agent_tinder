@@ -668,6 +668,35 @@ textarea {
   gap: 12px;
 }
 
+.agent-a-activity {
+  display: flex;
+  margin: -7px 0 20px;
+  padding: 10px 12px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  border: 1px solid #eee8ff;
+  border-radius: 13px;
+  color: #766d83;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  background: #faf8ff;
+}
+
+.agent-a-activity > span {
+  margin-right: 2px;
+  color: var(--lavender);
+}
+
+.agent-a-activity strong {
+  color: #5f4dc2;
+}
+
+.agent-a-activity b {
+  color: var(--pink);
+}
+
 .ans-badge,
 .active-badge,
 .candidate-position {
@@ -995,9 +1024,31 @@ textarea {
   background: linear-gradient(145deg, #f8f5ff, #fff6f8);
 }
 
+.matched-avatar strong {
+  align-self: end;
+  font-size: 1rem;
+}
+
+.matched-avatar small {
+  align-self: start;
+  width: 64px;
+  overflow: hidden;
+  color: #81778d;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .matched-avatar-agent {
   color: white;
   background: linear-gradient(145deg, var(--lavender), var(--pink));
+}
+
+.matched-avatar-agent small {
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .match-pair {

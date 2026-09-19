@@ -55,6 +55,13 @@ class CapabilityDetectionTests(unittest.TestCase):
 
         self.assertEqual(capability.name, "catering")
 
+    def test_keywords_do_not_match_inside_unrelated_words(self):
+        with self.assertRaises(UnsupportedCapabilityError):
+            detect_capability(self.sage, "Help me practice Spanish.")
+
+        with self.assertRaises(UnsupportedCapabilityError):
+            detect_capability(self.spark, "Help me adjust this schedule.")
+
 
 if __name__ == "__main__":
     unittest.main()

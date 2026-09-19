@@ -31,13 +31,14 @@ def send_message(agent, prompt):
     except (requests.RequestException, ValueError) as error:
         raise A2AClientError("Unable to read the matched agent's Agent Card.") from error
 
-    _validate_agent_card(agent_card)
+    _validate_agent_card(agent_card, agent_url)
 
     # A2A 0.3 JSON-RPC uses message/send. messageId identifies this individual
     # message, while the remote agent creates the task and context identifiers.
+    request_id = str(uuid.uuid4())
     request_body = {
         "jsonrpc": "2.0",
-        "id": str(uuid.uuid4()),
+        "id": request_id,
         "method": "message/send",
         "params": {
             "message": {
@@ -60,8 +61,18 @@ def send_message(agent, prompt):
     except (requests.RequestException, ValueError) as error:
         raise A2AClientError("The matched agent did not return a valid response.") from error
 
+    if not isinstance(payload, dict):
+        raise A2AClientError("The matched agent returned an invalid A2A response.")
+    if payload.get("jsonrpc") != "2.0" or payload.get("id") != request_id:
+        raise A2AClientError("The matched agent returned an invalid A2A response.")
+
     if payload.get("error"):
-        message = payload["error"].get("message", "The matched agent reported an error.")
+        error_payload = payload["error"]
+        message = (
+            error_payload.get("message", "The matched agent reported an error.")
+            if isinstance(error_payload, dict)
+            else "The matched agent reported an error."
+        )
         raise A2AClientError(message)
 
     result = payload.get("result")
@@ -90,14 +101,18 @@ def _validate_agent_urls(agent_url, metadata_url):
         raise A2AClientError("The A2A endpoint and Agent Card hosts do not match.")
 
 
-def _validate_agent_card(agent_card):
+def _validate_agent_card(agent_card, agent_url):
     """Limit the MVP to the one A2A shape we tested successfully."""
+    if not isinstance(agent_card, dict):
+        raise A2AClientError("The matched agent returned an invalid Agent Card.")
     if agent_card.get("preferredTransport") != "JSONRPC":
         raise A2AClientError("The matched agent does not support JSON-RPC.")
     if agent_card.get("protocolVersion") != "0.3.0":
         raise A2AClientError("The matched agent uses an unsupported A2A version.")
     if agent_card.get("security"):
         raise A2AClientError("The matched agent requires unsupported authentication.")
+    if agent_card.get("url", "").rstrip("/") != agent_url.rstrip("/"):
+        raise A2AClientError("The Agent Card does not match the ANS endpoint.")
 
 
 def _extract_answer(result):

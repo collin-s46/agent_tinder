@@ -24,7 +24,7 @@ PRIMARY_AGENTS = {
         "icon": "spark",
         "theme": "coral",
         "example_prompts": (
-            "What catering options are available for a graduation party?",
+            "What catering services do you offer for a graduation party?",
             "Find a DJ service for a birthday celebration.",
         ),
         "topic_rules": (

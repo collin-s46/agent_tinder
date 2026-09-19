@@ -1,6 +1,7 @@
 """Small, deterministic capability detection for the hackathon demo."""
 
 from dataclasses import dataclass
+import re
 
 
 @dataclass(frozen=True)
@@ -29,7 +30,7 @@ def detect_capability(primary_agent, prompt):
     # outcome predictable when a prompt contains more than one relevant word.
     for rule in primary_agent["topic_rules"]:
         for keyword in rule["keywords"]:
-            if keyword.casefold() in normalized_prompt:
+            if _contains_keyword(normalized_prompt, keyword):
                 return Capability(
                     name=rule["id"],
                     label=rule["label"],
@@ -43,6 +44,12 @@ def detect_capability(primary_agent, prompt):
     raise UnsupportedCapabilityError(
         f"{primary_agent['name']} handles questions about {readable_topics}."
     )
+
+
+def _contains_keyword(normalized_prompt, keyword):
+    """Match complete words or phrases instead of accidental substrings."""
+    pattern = rf"(?<![a-z0-9]){re.escape(keyword.casefold())}(?![a-z0-9])"
+    return re.search(pattern, normalized_prompt) is not None
 
 
 def _join_readable(items):
