@@ -142,6 +142,16 @@ Include `primary_agent_id` and `prompt` in the search request. Flask must
 validate the ID against the local primary-agent configuration rather than
 trusting arbitrary agent details supplied by the browser.
 
+### Step 4 implementation result — completed September 19, 2026
+
+The browser now includes its selected `primary_agent_id` in every search
+request. Flask resolves that ID through the local configuration and rejects
+missing or unknown Agent A values before searching ANS. Successful responses
+include the validated Agent A's ID, name, and role.
+
+No names, roles, keywords, or search rules sent by the browser are trusted.
+Agent-specific capability detection is still intentionally deferred to Step 5.
+
 ## 5. Replace the HaloHeat-Only Capability Detector
 
 Replace the current single-scenario detector with small, explainable keyword
@@ -151,6 +161,16 @@ The selected primary agent narrows the expected topic. Keywords in the prompt
 then identify the missing capability and focused ANS query. If a question is
 outside the selected agent's supported topics, return a friendly explanation
 and examples instead of pretending it can complete the request.
+
+### Step 5 implementation result — completed September 19, 2026
+
+Capability detection now uses the selected Agent A's ordered topic rules.
+Spark recognizes catering, event entertainment, venues, and photography. Sage
+recognizes spa or massage, sauna, and fitness requests. Each recognized topic
+produces the focused ANS query verified during Step 1.
+
+Prompts outside the selected agent's role return a friendly error listing that
+agent's supported topics. The detector remains deterministic and uses no LLM.
 
 ## 6. Replace the HaloHeat-Specific Compatibility Score
 

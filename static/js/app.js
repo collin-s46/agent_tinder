@@ -117,13 +117,18 @@ searchForm.addEventListener("submit", async (event) => {
   showStatus("Searching ANS for compatible agents…", "loading");
 
   try {
-    // Send the prompt as JSON to the Flask route implemented in app.py.
+    // Send the selected local Agent A ID with the prompt. Flask validates the
+    // ID against its own configuration instead of trusting browser-supplied
+    // names, roles, or capability rules.
     const response = await fetch("/api/search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({
+        primary_agent_id: searchState.primaryAgentId,
+        prompt,
+      }),
     });
 
     const data = await response.json();

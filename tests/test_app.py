@@ -38,7 +38,11 @@ class SearchRouteTests(unittest.TestCase):
 
     def test_search_rejects_an_unsupported_prompt(self):
         response = self.client.post(
-            "/api/search", json={"prompt": "Help me write a history essay."}
+            "/api/search",
+            json={
+                "primary_agent_id": "sage",
+                "prompt": "Help me write a history essay.",
+            },
         )
 
         self.assertEqual(response.status_code, 422)
@@ -60,6 +64,7 @@ class SearchRouteTests(unittest.TestCase):
         response = self.client.post(
             "/api/search",
             json={
+                "primary_agent_id": "sage",
                 "prompt": (
                     "What services does HaloHeat offer, and how much is a "
                     "drop-in sauna session?"
@@ -68,14 +73,35 @@ class SearchRouteTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json["capability"], "customer-support")
-        self.assertEqual(response.json["search_query"], "HaloHeat Sauna")
+        self.assertEqual(response.json["primary_agent"]["id"], "sage")
+        self.assertEqual(response.json["primary_agent"]["name"], "Sage")
+        self.assertEqual(response.json["capability"], "sauna")
+        self.assertEqual(response.json["capability_label"], "Sauna")
+        self.assertEqual(response.json["search_query"], "sauna")
         self.assertEqual(response.json["candidates"][0]["agent_id"], "agent-123")
         self.assertEqual(response.json["candidates"][0]["compatibility"]["score"], 60)
 
         # This also verifies that capability detection produced the correct ANS
         # search phrase.
-        mock_search_agents.assert_called_once_with("HaloHeat Sauna")
+        mock_search_agents.assert_called_once_with("sauna")
+
+    @patch("app.search_agents")
+    def test_spark_uses_its_event_topic_to_search_ans(self, mock_search_agents):
+        mock_search_agents.return_value = []
+
+        response = self.client.post(
+            "/api/search",
+            json={
+                "primary_agent_id": "spark",
+                "prompt": "What catering options are available for a graduation party?",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["primary_agent"]["name"], "Spark")
+        self.assertEqual(response.json["capability"], "catering")
+        self.assertEqual(response.json["search_query"], "catering")
+        mock_search_agents.assert_called_once_with("catering")
 
     @patch("app.search_agents")
     def test_search_reports_invalid_configuration(self, mock_search_agents):
@@ -83,7 +109,10 @@ class SearchRouteTests(unittest.TestCase):
 
         response = self.client.post(
             "/api/search",
-            json={"prompt": "What services does HaloHeat offer?"},
+            json={
+                "primary_agent_id": "sage",
+                "prompt": "What services does HaloHeat offer?",
+            },
         )
 
         self.assertEqual(response.status_code, 503)
@@ -95,11 +124,39 @@ class SearchRouteTests(unittest.TestCase):
 
         response = self.client.post(
             "/api/search",
-            json={"prompt": "What services does HaloHeat offer?"},
+            json={
+                "primary_agent_id": "sage",
+                "prompt": "What services does HaloHeat offer?",
+            },
         )
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json["error"]["code"], "ans_unavailable")
+
+    def test_search_requires_a_valid_primary_agent(self):
+        response = self.client.post(
+            "/api/search",
+            json={"prompt": "What services does HaloHeat offer?"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json["error"]["code"], "invalid_primary_agent"
+        )
+
+    def test_search_rejects_an_unknown_primary_agent(self):
+        response = self.client.post(
+            "/api/search",
+            json={
+                "primary_agent_id": "atlas",
+                "prompt": "What services does HaloHeat offer?",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json["error"]["code"], "invalid_primary_agent"
+        )
 
     def test_match_requires_an_agent_id(self):
         response = self.client.post(

@@ -7,47 +7,46 @@ from dataclasses import dataclass
 class Capability:
     """The capability and ANS query derived from a user request."""
 
-    # name is shown to the frontend; search_query is sent to GoDaddy ANS.
+    # name is the stable rule ID, label is readable UI text, and search_query
+    # is the verified phrase sent to GoDaddy ANS.
     name: str
+    label: str
     search_query: str
 
 
 class UnsupportedCapabilityError(ValueError):
-    """Raised when a prompt is outside the single supported MVP scenario."""
+    """Raised when a prompt is outside the selected Agent A's topics."""
 
 
-def detect_capability(prompt):
-    """Recognize the HaloHeat customer-support scenario."""
+def detect_capability(primary_agent, prompt):
+    """Match a prompt to one topic rule owned by the selected Agent A."""
     # casefold() is a stronger lowercase operation, so "HaloHeat" and
     # "HALOHEAT" are treated the same way.
     normalized_prompt = prompt.casefold()
 
-    # The prompt must mention the demo business and also ask for something the
-    # customer-support agent can answer. Keeping these lists short makes the
-    # behavior easy to explain during the hackathon demo.
-    target_terms = ("haloheat", "sauna")
-    support_terms = (
-        "service",
-        "offer",
-        "price",
-        "pricing",
-        "cost",
-        "session",
-        "membership",
-        "support",
-        "order",
-    )
+    # Rules are checked in configuration order. Specific topics such as
+    # catering come before broad event-planning or wellness terms, making the
+    # outcome predictable when a prompt contains more than one relevant word.
+    for rule in primary_agent["topic_rules"]:
+        for keyword in rule["keywords"]:
+            if keyword.casefold() in normalized_prompt:
+                return Capability(
+                    name=rule["id"],
+                    label=rule["label"],
+                    search_query=rule["search_query"],
+                )
 
-    mentions_target = any(term in normalized_prompt for term in target_terms)
-    requests_support = any(term in normalized_prompt for term in support_terms)
-
-    if mentions_target and requests_support:
-        # We send a short, focused query instead of the full sentence because
-        # the manual ANS test showed this reliably finds the HaloHeat agent.
-        return Capability(name="customer-support", search_query="HaloHeat Sauna")
-
-    # The MVP supports one polished scenario. An explicit error is clearer than
-    # pretending an unsupported request can be handled.
+    # Build the error from the selected agent's own topics so the user gets a
+    # useful correction instead of a generic unsupported-request message.
+    topic_labels = [rule["label"] for rule in primary_agent["topic_rules"]]
+    readable_topics = _join_readable(topic_labels)
     raise UnsupportedCapabilityError(
-        "This MVP currently supports questions about HaloHeat services and pricing."
+        f"{primary_agent['name']} handles questions about {readable_topics}."
     )
+
+
+def _join_readable(items):
+    """Join labels as 'one, two, or three' for a friendly error message."""
+    if len(items) == 1:
+        return items[0]
+    return f"{', '.join(items[:-1])}, or {items[-1]}"

@@ -50,6 +50,10 @@ PRIMARY_AGENTS = {
                     "music",
                     "entertainment",
                     "performer",
+                    "event planner",
+                    "event planning",
+                    "birthday party",
+                    "celebration",
                 ),
                 "search_query": "event planning",
             },
@@ -101,6 +105,8 @@ PRIMARY_AGENTS = {
                     "facial",
                     "treatment",
                     "relaxation",
+                    "wellness",
+                    "self-care",
                 ),
                 # The Golden Spa agent returned detailed services and prices
                 # for this query during the Step 1 audit.
@@ -111,6 +117,7 @@ PRIMARY_AGENTS = {
                 "label": "Sauna",
                 "keywords": (
                     "sauna",
+                    "haloheat",
                     "infrared",
                     "heat therapy",
                     "sweat session",

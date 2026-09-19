@@ -38,10 +38,12 @@ def index():
 @app.post("/api/search")
 def search():
     """Detect the requested capability and return matching ANS agents."""
-    # The future JavaScript button will send JSON shaped like:
-    # {"prompt": "What services does HaloHeat offer?"}
+    # JavaScript sends only the local Agent A ID and the user's prompt. The
+    # server retrieves every other Agent A field from its trusted configuration.
+    # Example: {"primary_agent_id": "sage", "prompt": "Find a sauna."}
     # silent=True lets us return our own friendly error if the body is not JSON.
     payload = request.get_json(silent=True) or {}
+    primary_agent_id = payload.get("primary_agent_id", "")
     prompt = payload.get("prompt", "")
 
     # Reject empty or non-text prompts before doing any external API work.
@@ -50,11 +52,21 @@ def search():
 
     prompt = prompt.strip()
 
-    # Convert the natural-language request into the one capability and search
-    # query supported by this MVP. This is intentionally deterministic—there is
-    # no LLM call or complex orchestration here.
+    # Never accept an Agent A name, role, or rules from the browser. Resolve its
+    # short ID against our local configuration so only Spark and Sage are valid.
+    primary_agent = get_primary_agent(primary_agent_id)
+    if primary_agent is None:
+        return _error_response(
+            "invalid_primary_agent",
+            "Please select a valid primary agent.",
+            400,
+        )
+
+    # Let the selected Agent A classify the request using its small local topic
+    # rules. This is intentionally deterministic—there is no LLM call or
+    # complex orchestration in the MVP.
     try:
-        capability = detect_capability(prompt)
+        capability = detect_capability(primary_agent, prompt)
     except UnsupportedCapabilityError as error:
         return _error_response("unsupported_capability", str(error), 422)
 
@@ -85,7 +97,13 @@ def search():
     return jsonify(
         {
             "prompt": prompt,
+            "primary_agent": {
+                "id": primary_agent["id"],
+                "name": primary_agent["name"],
+                "role": primary_agent["role"],
+            },
             "capability": capability.name,
+            "capability_label": capability.label,
             "search_query": capability.search_query,
             "candidates": scored_candidates,
         }
