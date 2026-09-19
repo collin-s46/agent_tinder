@@ -17,14 +17,16 @@ const candidateAnsName = document.querySelector("#candidate-ans-name");
 const candidatePosition = document.querySelector("#candidate-position");
 const passButton = document.querySelector("#pass-button");
 const matchButton = document.querySelector("#match-button");
+const matchButtonLabel = matchButton.querySelector(".match-button-label");
 const candidateControlStatus = document.querySelector(
   "#candidate-control-status",
 );
 const matchView = document.querySelector("#match-view");
 const matchedAgentName = document.querySelector("#matched-agent-name");
+const matchedAgentAnswer = document.querySelector("#matched-agent-answer");
 
-// Keep the successful response in memory. The next frontend step will use
-// these candidates to build the swipeable agent cards.
+// Keep the search and selection in memory so Pass can move through the deck
+// and Match can send the currently displayed agent to the Flask backend.
 const searchState = {
   capability: null,
   candidates: [],
@@ -81,8 +83,8 @@ searchForm.addEventListener("submit", async (event) => {
       "success",
     );
 
-    // This step displays only the first candidate. Pass and Match controls will
-    // move through the remaining in-memory candidates in the next feature.
+    // Start the deck at its first candidate. Pass moves forward through this
+    // in-memory list, while Match connects the displayed candidate over A2A.
     renderCandidate(searchState.candidates[0]);
   } catch (error) {
     // This handles both Flask API errors and browser/network failures.
@@ -161,14 +163,60 @@ passButton.addEventListener("click", () => {
   }, 220);
 });
 
-matchButton.addEventListener("click", () => {
+matchButton.addEventListener("click", async () => {
   const candidate = searchState.candidates[searchState.currentIndex];
-  searchState.selectedCandidate = candidate;
+  const prompt = promptInput.value.trim();
 
-  matchedAgentName.textContent = candidate.name;
-  candidateView.hidden = true;
-  matchView.hidden = false;
-  matchView.focus();
+  // A candidate should always be present here, but this guard prevents a bad
+  // request if the page state changes unexpectedly.
+  if (!candidate || !prompt) {
+    candidateControlStatus.textContent =
+      "This match is missing an agent or request. Please search again.";
+    return;
+  }
+
+  // Keep the user on the candidate card while the remote agent is working.
+  // This gives us a natural place to show loading and error messages.
+  setMatching(true);
+  candidateControlStatus.textContent = `Connecting with ${candidate.name} over A2A…`;
+
+  try {
+    // Only send the registry ID and original prompt. Flask resolves the agent
+    // through ANS again, so the browser never supplies a trusted endpoint URL.
+    const response = await fetch("/api/match", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        agent_id: candidate.agent_id,
+        prompt,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || "The A2A connection failed.");
+    }
+
+    // Save and display the confirmed result only after the agent completes its
+    // task. textContent keeps the external response safely escaped as text.
+    searchState.selectedCandidate = candidate;
+    matchedAgentName.textContent = data.agent_name || candidate.name;
+    matchedAgentAnswer.textContent = data.answer;
+
+    candidateView.hidden = true;
+    matchView.hidden = false;
+    matchView.focus();
+  } catch (error) {
+    // Leave the candidate visible so the user can retry a temporary ANS or A2A
+    // failure without repeating the search.
+    candidateControlStatus.textContent =
+      error.message || "Unable to communicate with this agent.";
+  } finally {
+    setMatching(false);
+  }
 });
 
 function buildDemoDeck(candidates) {
@@ -191,4 +239,11 @@ function buildDemoDeck(candidates) {
 function setCandidateControlsDisabled(isDisabled) {
   passButton.disabled = isDisabled;
   matchButton.disabled = isDisabled;
+}
+
+function setMatching(isMatching) {
+  // Disable Pass as well as Match so the selected card cannot change while
+  // its A2A request is in flight.
+  setCandidateControlsDisabled(isMatching);
+  matchButtonLabel.textContent = isMatching ? "Connecting…" : "Match";
 }

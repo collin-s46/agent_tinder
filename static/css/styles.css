@@ -749,7 +749,7 @@ textarea {
   opacity: 0.48;
 }
 
-.candidate-controls button span {
+.candidate-controls .button-icon {
   font-size: 1.15rem;
   line-height: 1;
 }
@@ -875,6 +875,33 @@ textarea {
   color: var(--muted);
   font-size: 0.82rem;
   line-height: 1.6;
+}
+
+.agent-response {
+  max-width: 420px;
+  margin: 20px auto 0;
+  padding: 16px 18px;
+  border: 1px solid #ece5f0;
+  border-radius: 18px;
+  text-align: left;
+  background: #fbf9fd;
+}
+
+.agent-response h3 {
+  margin: 0 0 7px;
+  color: var(--pink);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.agent-response p {
+  margin: 0;
+  color: #554d5e;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  white-space: pre-line;
 }
 
 @keyframes candidate-enter {

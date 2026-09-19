@@ -166,8 +166,8 @@
                 Pass
               </button>
               <button id="match-button" class="match-button" type="button">
-                <span aria-hidden="true">♥</span>
-                Match
+                <span class="button-icon" aria-hidden="true">♥</span>
+                <span class="match-button-label">Match</span>
               </button>
             </div>
 
@@ -199,8 +199,13 @@
               Your Agent <span>+</span> <strong id="matched-agent-name"></strong>
             </p>
             <p class="match-message">
-              These agents are ready to connect. A2A communication comes next.
+              Connected successfully through the A2A protocol.
             </p>
+
+            <section class="agent-response" aria-labelledby="agent-response-title">
+              <h3 id="agent-response-title">Agent response</h3>
+              <p id="matched-agent-answer"></p>
+            </section>
           </section>
         </div>
       </section>
