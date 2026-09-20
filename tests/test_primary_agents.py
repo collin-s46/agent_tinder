@@ -20,6 +20,7 @@ class PrimaryAgentConfigurationTests(unittest.TestCase):
                 self.assertTrue(agent["description"])
                 self.assertTrue(agent["icon"])
                 self.assertTrue(agent["theme"])
+                self.assertTrue(agent["prompt_placeholder"])
                 self.assertGreaterEqual(len(agent["example_prompts"]), 2)
                 self.assertGreaterEqual(len(agent["topic_rules"]), 1)
 

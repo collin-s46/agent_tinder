@@ -127,10 +127,6 @@ function selectPrimaryAgent(agentId) {
     return;
   }
 
-  const previousAgent = primaryAgentsById.get(searchState.primaryAgentId);
-  const currentPrompt = promptInput.value.trim();
-  const previousExample = previousAgent?.example_prompts[0] || "";
-
   searchState.primaryAgentId = agent.id;
   searchState.primaryAgent = null;
   searchState.capability = null;
@@ -153,12 +149,9 @@ function selectPrimaryAgent(agentId) {
   selectedAgentNote.textContent =
     `${agent.name} will search ANS for compatible agents.`;
 
-  // Replace an empty prompt or the previous agent's untouched example. Never
-  // overwrite a question the user has started writing themselves.
-  if (!currentPrompt || currentPrompt === previousExample) {
-    promptInput.value = agent.example_prompts[0];
-  }
-  promptInput.placeholder = agent.example_prompts[0];
+  // Keep the field empty until the user writes a request. Switching Agent A
+  // updates only the guidance and never overwrites text the user already typed.
+  promptInput.placeholder = agent.prompt_placeholder;
 
   // A message from an earlier search no longer applies to the newly selected
   // primary agent.

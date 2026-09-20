@@ -130,7 +130,8 @@ text should change with the selection.
 The opening card now renders Spark and Sage directly from the shared Python
 configuration. They behave as an accessible single-choice control. Selecting
 an agent updates its active styling, name, role, description, form label,
-example prompt, and ANS helper text without reloading the page.
+prompt placeholder, and ANS helper text without reloading the page. The prompt
+field is empty by default so the user supplies the actual request.
 
 Sage is temporarily selected by default so the existing HaloHeat backend demo
 continues to work. The browser stores the selected Agent A ID, but it does not

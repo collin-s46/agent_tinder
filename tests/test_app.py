@@ -35,6 +35,11 @@ class SearchRouteTests(unittest.TestCase):
         self.assertIn('id="score-details"', page)
         self.assertIn('id="new-search-button"', page)
         self.assertIn('href="/static/favicon.svg"', page)
+        self.assertIn("Ask anything about wellness", page)
+        self.assertNotIn(
+            ">What services does HaloHeat offer, and how much is a drop-in sauna session?</textarea>",
+            page,
+        )
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
         self.assertIn(
             "frame-ancestors 'none'",

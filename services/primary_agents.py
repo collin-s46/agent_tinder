@@ -23,6 +23,10 @@ PRIMARY_AGENTS = {
         # style without putting CSS classes or markup in Python.
         "icon": "spark",
         "theme": "coral",
+        "prompt_placeholder": (
+            "Ask anything about catering, DJs, entertainment, venues, "
+            "or event photography…"
+        ),
         "example_prompts": (
             "What catering services do you offer for a graduation party?",
             "Find a DJ service for a birthday celebration.",
@@ -91,6 +95,7 @@ PRIMARY_AGENTS = {
         ),
         "icon": "lotus",
         "theme": "lavender",
+        "prompt_placeholder": "Ask anything about wellness…",
         "example_prompts": (
             "What services does HaloHeat offer, and how much is a drop-in sauna session?",
             "What spa services and prices are available for a first-time visitor?",
