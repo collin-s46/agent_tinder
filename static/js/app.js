@@ -12,6 +12,8 @@ const candidateView = document.querySelector("#candidate-view");
 const candidateName = document.querySelector("#candidate-name");
 const candidateDescription = document.querySelector("#candidate-description");
 const candidateScore = document.querySelector("#candidate-score");
+const scoreDetails = document.querySelector("#score-details");
+const scoreBreakdownValues = document.querySelectorAll("[data-score-key]");
 const candidateStatus = document.querySelector("#candidate-status");
 const candidateSkillList = document.querySelector("#candidate-skill-list");
 const candidateAnsName = document.querySelector("#candidate-ans-name");
@@ -28,6 +30,7 @@ const matchButtonLabel = matchButton.querySelector(".match-button-label");
 const candidateControlStatus = document.querySelector(
   "#candidate-control-status",
 );
+const editRequestButton = document.querySelector("#edit-request-button");
 const matchView = document.querySelector("#match-view");
 const matchKicker = document.querySelector("#match-kicker");
 const matchMessage = document.querySelector("#match-message");
@@ -49,6 +52,10 @@ const matchedAgentAvatarName = document.querySelector(
   "#matched-agent-avatar-name",
 );
 const agentResponseTitle = document.querySelector("#agent-response-title");
+const tracePrimaryAgent = document.querySelector("#trace-primary-agent");
+const traceProtocol = document.querySelector("#trace-protocol");
+const traceMatchedAgent = document.querySelector("#trace-matched-agent");
+const newSearchButton = document.querySelector("#new-search-button");
 const primaryAgentOptions = document.querySelectorAll(".primary-agent-option");
 const selectedPrimaryAgentName = document.querySelector(
   "#selected-primary-agent-name",
@@ -86,6 +93,28 @@ for (const option of primaryAgentOptions) {
   option.addEventListener("click", () => {
     selectPrimaryAgent(option.dataset.agentId);
   });
+
+  option.addEventListener("keydown", (event) => {
+    const options = [...primaryAgentOptions];
+    const currentIndex = options.indexOf(option);
+    let nextIndex = null;
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      nextIndex = (currentIndex + 1) % options.length;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      nextIndex = (currentIndex - 1 + options.length) % options.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = options.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      options[nextIndex].click();
+      options[nextIndex].focus();
+    }
+  });
 }
 
 function selectPrimaryAgent(agentId) {
@@ -110,6 +139,7 @@ function selectPrimaryAgent(agentId) {
     const isSelected = option.dataset.agentId === agent.id;
     option.classList.toggle("primary-agent-option--selected", isSelected);
     option.setAttribute("aria-checked", String(isSelected));
+    option.tabIndex = isSelected ? 0 : -1;
   }
 
   selectedPrimaryAgentName.textContent = agent.name;
@@ -167,11 +197,9 @@ searchForm.addEventListener("submit", async (event) => {
       }),
     });
 
-    const data = await response.json();
-
-    // Flask returns errors in a consistent {error: {message: ...}} shape.
-    if (!response.ok) {
-      throw new Error(data.error?.message || "The agent search failed.");
+    const data = await readApiResponse(response, "The agent search failed.");
+    if (!Array.isArray(data.candidates) || !data.primary_agent) {
+      throw new Error("The search service returned an unexpected response.");
     }
 
     searchState.primaryAgent = data.primary_agent;
@@ -208,6 +236,9 @@ function setSearching(isSearching) {
   // Disable the button to prevent duplicate searches while one is running.
   searchForm.setAttribute("aria-busy", String(isSearching));
   findMatchButton.disabled = isSearching;
+  for (const option of primaryAgentOptions) {
+    option.disabled = isSearching;
+  }
   buttonLabel.textContent = isSearching ? "Searching ANS…" : "Find My Match";
 }
 
@@ -226,11 +257,20 @@ function renderCandidate(candidate) {
     candidate.description || "No description provided by this agent.";
   candidateScore.textContent = `${candidate.compatibility.score}%`;
   candidateStatus.textContent = candidate.status || "Unknown";
+  const isActive = candidate.status?.toLowerCase() === "active";
+  candidateStatus.classList.toggle("active-badge--inactive", !isActive);
   candidateAnsName.textContent = candidate.ans_name;
   candidatePosition.textContent = `${searchState.currentIndex + 1} of ${searchState.candidates.length}`;
   candidatePrimaryAgentName.textContent = searchState.primaryAgent.name;
   candidateCapabilityLabel.textContent = searchState.capabilityLabel;
   candidateControlStatus.textContent = "";
+  scoreDetails.open = false;
+
+  const breakdown = candidate.compatibility.breakdown || {};
+  for (const value of scoreBreakdownValues) {
+    const points = Number(breakdown[value.dataset.scoreKey]) || 0;
+    value.textContent = `+${points}`;
+  }
 
   candidateSkillList.replaceChildren();
   const skills = candidate.skills.slice(0, 3);
@@ -308,10 +348,9 @@ matchButton.addEventListener("click", async () => {
       }),
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error?.message || "The A2A connection failed.");
+    const data = await readApiResponse(response, "The A2A connection failed.");
+    if (!data.primary_agent || typeof data.answer !== "string") {
+      throw new Error("The matched agent returned an unexpected response.");
     }
 
     // Save and display the confirmed result only after the agent completes its
@@ -335,6 +374,9 @@ matchButton.addEventListener("click", async () => {
       `${primaryAgent.name} contacted ${agentName} successfully through A2A.`;
     agentResponseTitle.textContent = `${agentName} replied`;
     matchedAgentAnswer.textContent = data.answer;
+    tracePrimaryAgent.textContent = primaryAgent.name;
+    traceProtocol.textContent = `A2A ${data.protocol_version || ""}`.trim();
+    traceMatchedAgent.textContent = agentName;
 
     candidateView.hidden = true;
     matchView.hidden = false;
@@ -369,6 +411,7 @@ function buildDemoDeck(candidates) {
 function setCandidateControlsDisabled(isDisabled) {
   passButton.disabled = isDisabled;
   matchButton.disabled = isDisabled;
+  editRequestButton.disabled = isDisabled;
 }
 
 function setMatching(isMatching) {
@@ -388,4 +431,43 @@ function getInitials(name) {
     .map((word) => word[0])
     .join("")
     .toUpperCase();
+}
+
+editRequestButton.addEventListener("click", showRequestView);
+newSearchButton.addEventListener("click", showRequestView);
+
+function showRequestView() {
+  candidateView.hidden = true;
+  matchView.hidden = true;
+  requestView.hidden = false;
+  searchStatus.hidden = true;
+  searchState.primaryAgent = null;
+  searchState.capability = null;
+  searchState.capabilityLabel = null;
+  searchState.candidates = [];
+  searchState.currentIndex = 0;
+  searchState.selectedCandidate = null;
+  candidateControlStatus.textContent = "";
+  setCandidateControlsDisabled(false);
+  promptInput.focus();
+}
+
+async function readApiResponse(response, fallbackMessage) {
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error(
+      response.ok
+        ? "The service returned an unexpected response."
+        : fallbackMessage,
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.error?.message || fallbackMessage);
+  }
+
+  return data;
 }

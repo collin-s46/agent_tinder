@@ -2,7 +2,12 @@ import os
 import unittest
 from unittest.mock import Mock, patch
 
-from services.ans_client import ANSConfigurationError, get_agent, search_agents
+from services.ans_client import (
+    ANSClientError,
+    ANSConfigurationError,
+    get_agent,
+    search_agents,
+)
 
 
 class ANSClientTests(unittest.TestCase):
@@ -82,6 +87,15 @@ class ANSClientTests(unittest.TestCase):
         ):
             with self.assertRaises(ANSConfigurationError):
                 search_agents("HaloHeat Sauna")
+
+    @patch("services.ans_client.requests.get")
+    def test_search_rejects_a_non_object_response(self, mock_get):
+        response = Mock()
+        response.json.return_value = ["unexpected"]
+        mock_get.return_value = response
+
+        with self.assertRaisesRegex(ANSClientError, "unexpected response"):
+            search_agents("sauna")
 
     @patch("services.ans_client.requests.get")
     def test_get_agent_resolves_an_id_through_ans(self, mock_get):

@@ -32,6 +32,14 @@ class SearchRouteTests(unittest.TestCase):
         self.assertIn('id="candidate-primary-agent-name"', page)
         self.assertIn('id="matched-primary-agent-name"', page)
         self.assertIn('id="matched-primary-avatar-name"', page)
+        self.assertIn('id="score-details"', page)
+        self.assertIn('id="new-search-button"', page)
+        self.assertIn('href="/static/favicon.svg"', page)
+        self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+        self.assertIn(
+            "frame-ancestors 'none'",
+            response.headers["Content-Security-Policy"],
+        )
 
     def test_search_requires_a_prompt(self):
         response = self.client.post("/api/search", json={})
@@ -233,6 +241,12 @@ class SearchRouteTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["error"]["code"], "missing_agent")
+
+    def test_match_rejects_a_non_object_json_body(self):
+        response = self.client.post("/api/match", json=["not", "an", "object"])
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["error"]["code"], "invalid_request")
 
     @patch("app.send_message")
     @patch("app.get_agent")

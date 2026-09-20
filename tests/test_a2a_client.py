@@ -126,6 +126,15 @@ class A2AClientTests(unittest.TestCase):
         with self.assertRaisesRegex(A2AClientError, "hosts do not match"):
             send_message(agent, "Hello")
 
+    def test_send_message_rejects_a_private_network_endpoint(self):
+        agent = {
+            "agent_url": "https://127.0.0.1/a2a",
+            "metadata_url": "https://127.0.0.1/agent-card.json",
+        }
+
+        with self.assertRaisesRegex(A2AClientError, "private network"):
+            send_message(agent, "Hello")
+
 
 if __name__ == "__main__":
     unittest.main()

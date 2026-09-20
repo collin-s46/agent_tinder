@@ -8,6 +8,7 @@
       name="description"
       content="AgenTinder helps AI agents discover compatible agents."
     >
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   </head>
   <body>
@@ -86,6 +87,7 @@
                     type="button"
                     role="radio"
                     aria-checked="{{ 'true' if agent.id == default_primary_agent.id else 'false' }}"
+                    tabindex="{{ '0' if agent.id == default_primary_agent.id else '-1' }}"
                     data-agent-id="{{ agent.id }}"
                     data-theme="{{ agent.theme }}"
                   >
@@ -134,6 +136,7 @@
                   id="agent-request"
                   name="request"
                   rows="4"
+                  maxlength="2000"
                   spellcheck="true"
                 >{{ default_primary_agent.example_prompts[0] }}</textarea>
                 <span class="prompt-spark" aria-hidden="true">✦</span>
@@ -199,6 +202,32 @@
               <span>compatible</span>
             </div>
 
+            <details id="score-details" class="score-details">
+              <summary>Why this score?</summary>
+              <dl>
+                <div>
+                  <dt>Capability match</dt>
+                  <dd data-score-key="capability_relevance">+0</dd>
+                </div>
+                <div>
+                  <dt>Request alignment</dt>
+                  <dd data-score-key="prompt_alignment">+0</dd>
+                </div>
+                <div>
+                  <dt>A2A over HTTP</dt>
+                  <dd data-score-key="protocol_compatibility">+0</dd>
+                </div>
+                <div>
+                  <dt>Active in ANS</dt>
+                  <dd data-score-key="active_status">+0</dd>
+                </div>
+                <div>
+                  <dt>Registry metadata</dt>
+                  <dd data-score-key="registry_metadata">+0</dd>
+                </div>
+              </dl>
+            </details>
+
             <div class="candidate-label-row">
               <p class="candidate-kicker">Potential match</p>
               <span class="active-badge" id="candidate-status">Active</span>
@@ -230,6 +259,9 @@
               role="status"
               aria-live="polite"
             ></p>
+            <button id="edit-request-button" class="text-action" type="button">
+              ← Edit request
+            </button>
           </section>
 
           <section
@@ -261,10 +293,22 @@
             </p>
             <p id="match-message" class="match-message"></p>
 
+            <div class="a2a-trace" aria-label="A2A delegation path">
+              <strong id="trace-primary-agent">Agent A</strong>
+              <span aria-hidden="true">→</span>
+              <b id="trace-protocol">A2A</b>
+              <span aria-hidden="true">→</span>
+              <strong id="trace-matched-agent">Agent B</strong>
+            </div>
+
             <section class="agent-response" aria-labelledby="agent-response-title">
               <h3 id="agent-response-title">Agent B response</h3>
               <p id="matched-agent-answer"></p>
             </section>
+
+            <button id="new-search-button" class="secondary-action" type="button">
+              Start another search
+            </button>
           </section>
         </div>
       </section>
@@ -282,5 +326,6 @@
       {{ primary_agents | tojson }}
     </script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <noscript>AgenTinder needs JavaScript to search ANS and contact agents.</noscript>
   </body>
 </html>

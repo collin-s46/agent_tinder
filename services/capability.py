@@ -1,7 +1,7 @@
 """Small, deterministic capability detection for the hackathon demo."""
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

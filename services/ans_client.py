@@ -64,6 +64,9 @@ def search_agents(query, page_size=5):
     except ValueError as error:
         raise ANSClientError("ANS returned an invalid JSON response.") from error
 
+    if not isinstance(payload, dict):
+        raise ANSClientError("ANS returned an unexpected response format.")
+
     items = payload.get("items", [])
     if not isinstance(items, list):
         raise ANSClientError("ANS returned an unexpected response format.")
@@ -72,6 +75,8 @@ def search_agents(query, page_size=5):
     # drop entries that do not actually contain a usable A2A-over-HTTP endpoint.
     candidates = []
     for item in items:
+        if not isinstance(item, dict):
+            continue
         candidate = _normalize_agent(item)
         if candidate is not None:
             candidates.append(candidate)
@@ -114,6 +119,9 @@ def get_agent(agent_id):
     except ValueError as error:
         raise ANSClientError("ANS returned invalid agent metadata.") from error
 
+    if not isinstance(payload, dict):
+        raise ANSClientError("ANS returned invalid agent metadata.")
+
     candidate = _normalize_agent(payload)
     if candidate is None:
         raise ANSClientError(
@@ -137,6 +145,9 @@ def _read_timeout():
 
 def _normalize_agent(item):
     """Convert a registry record into the small shape used by the UI."""
+    if not isinstance(item, dict):
+        return None
+
     # An ANS agent can advertise several endpoints. The MVP needs only one that
     # speaks A2A over HTTP.
     endpoint = _find_a2a_http_endpoint(item.get("endpoints", []))
@@ -144,34 +155,51 @@ def _normalize_agent(item):
         return None
 
     functions = endpoint.get("functions", [])
+    if not isinstance(functions, list):
+        functions = []
     skills = []
 
     # ANS calls these records "functions"; the AgenTinder UI presents them as
     # skills because that is easier for users to understand.
     for function in functions:
+        if not isinstance(function, dict):
+            continue
+        tags = function.get("tags", [])
+        if not isinstance(tags, list):
+            tags = []
         skills.append(
             {
-                "id": function.get("id", ""),
-                "name": function.get("name", ""),
-                "tags": function.get("tags", []),
+                "id": _text(function.get("id")),
+                "name": _text(function.get("name")),
+                "tags": [_text(tag) for tag in tags if _text(tag)],
             }
         )
 
     lifecycle = item.get("lifecycle", {})
     scores = item.get("scores", {})
+    if not isinstance(lifecycle, dict):
+        lifecycle = {}
+    if not isinstance(scores, dict):
+        scores = {}
+
+    agent_id = _text(item.get("agentId"))
+    agent_url = _text(endpoint.get("agentUrl"))
+    metadata_url = _text(endpoint.get("metaDataUrl"))
+    if not agent_id or not agent_url or not metadata_url:
+        return None
 
     # .get(..., default) keeps a partially filled registry record from crashing
     # the whole search response.
     return {
-        "agent_id": item.get("agentId", ""),
-        "ans_name": item.get("ansName", ""),
-        "name": item.get("agentDisplayName", "Unnamed agent"),
-        "description": item.get("agentDescription", ""),
-        "status": lifecycle.get("status", "UNKNOWN"),
+        "agent_id": agent_id,
+        "ans_name": _text(item.get("ansName")),
+        "name": _text(item.get("agentDisplayName")) or "Unnamed agent",
+        "description": _text(item.get("agentDescription")),
+        "status": _text(lifecycle.get("status")) or "UNKNOWN",
         "discovered_via_ans": True,
-        "agent_url": endpoint.get("agentUrl", ""),
-        "metadata_url": endpoint.get("metaDataUrl", ""),
-        "protocol": endpoint.get("protocol", ""),
+        "agent_url": agent_url,
+        "metadata_url": metadata_url,
+        "protocol": _text(endpoint.get("protocol")),
         "transports": endpoint.get("transports", []),
         "skills": skills,
         "scores": {
@@ -183,9 +211,21 @@ def _normalize_agent(item):
 
 def _find_a2a_http_endpoint(endpoints):
     """Choose the first endpoint that matches the MVP transport requirements."""
+    if not isinstance(endpoints, list):
+        return None
+
     # We intentionally support one protocol/transport combination for the MVP.
     for endpoint in endpoints:
+        if not isinstance(endpoint, dict):
+            continue
         transports = endpoint.get("transports", [])
+        if not isinstance(transports, list):
+            continue
         if endpoint.get("protocol") == "A2A" and "HTTP" in transports:
             return endpoint
     return None
+
+
+def _text(value):
+    """Return registry text as a string without stringifying malformed data."""
+    return value.strip() if isinstance(value, str) else ""

@@ -253,6 +253,20 @@ The completed response includes the server-validated identities of both agents
 plus the delegated capability and Agent B's answer. The result screen uses
 these server-confirmed values rather than trusting browser-supplied names.
 
+## 9. Reliability and Demo Polish
+
+The completed flow now explains each compatibility score, visually traces the
+final `Agent A → A2A → Agent B` handoff, and provides Edit request and Start
+another search controls so the single-page experience never ends in a dead
+end. Agent selection supports standard radio-group arrow keys and is locked
+while a search is in flight to prevent response/state races.
+
+API boundaries reject malformed or oversized requests. Capability keywords
+match whole words and phrases instead of accidental substrings. ANS metadata
+is normalized defensively, and the A2A client verifies HTTPS hosts, blocks
+literal private-network endpoints, checks that the Agent Card agrees with ANS,
+and correlates JSON-RPC responses with the request ID.
+
 ## Intended Flow
 
 ```text

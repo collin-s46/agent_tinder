@@ -2,6 +2,7 @@
 
 import os
 import uuid
+from ipaddress import ip_address
 from urllib.parse import urlparse
 
 import requests
@@ -90,6 +91,9 @@ def send_message(agent, prompt):
 
 def _validate_agent_urls(agent_url, metadata_url):
     """Allow only HTTPS URLs advertised by the selected ANS record."""
+    if not isinstance(agent_url, str) or not isinstance(metadata_url, str):
+        raise A2AClientError("The selected agent has invalid endpoint URLs.")
+
     agent_parts = urlparse(agent_url)
     metadata_parts = urlparse(metadata_url)
 
@@ -99,6 +103,24 @@ def _validate_agent_urls(agent_url, metadata_url):
         raise A2AClientError("The selected agent has an invalid Agent Card URL.")
     if agent_parts.hostname != metadata_parts.hostname:
         raise A2AClientError("The A2A endpoint and Agent Card hosts do not match.")
+    if _is_local_host(agent_parts.hostname):
+        raise A2AClientError("The selected agent uses a private network address.")
+
+
+def _is_local_host(hostname):
+    """Reject local and literal private addresses from untrusted ANS records."""
+    normalized_host = hostname.casefold().rstrip(".")
+    if normalized_host == "localhost" or normalized_host.endswith(
+        (".localhost", ".local")
+    ):
+        return True
+
+    try:
+        address = ip_address(normalized_host)
+    except ValueError:
+        return False
+
+    return not address.is_global
 
 
 def _validate_agent_card(agent_card, agent_url):
