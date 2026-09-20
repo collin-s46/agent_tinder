@@ -14,6 +14,8 @@ agent over the A2A JSON-RPC protocol.
 5. A match is re-resolved through ANS, verified against its public Agent Card,
    and contacted using A2A `0.3.0`.
 6. Agent B's response is returned through Agent A and shown in the interface.
+7. Obvious low-information fallbacks are labeled, with an option to try the
+   next discovered agent instead of treating protocol success as answer success.
 
 ## Run locally
 

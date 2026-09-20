@@ -55,6 +55,10 @@ const agentResponseTitle = document.querySelector("#agent-response-title");
 const tracePrimaryAgent = document.querySelector("#trace-primary-agent");
 const traceProtocol = document.querySelector("#trace-protocol");
 const traceMatchedAgent = document.querySelector("#trace-matched-agent");
+const answerQualityWarning = document.querySelector(
+  "#answer-quality-warning",
+);
+const tryNextButton = document.querySelector("#try-next-button");
 const newSearchButton = document.querySelector("#new-search-button");
 const primaryAgentOptions = document.querySelectorAll(".primary-agent-option");
 const selectedPrimaryAgentName = document.querySelector(
@@ -378,6 +382,16 @@ matchButton.addEventListener("click", async () => {
     traceProtocol.textContent = `A2A ${data.protocol_version || ""}`.trim();
     traceMatchedAgent.textContent = agentName;
 
+    const responseIsLimited = data.answer_quality?.status === "limited";
+    const hasAnotherCandidate =
+      searchState.currentIndex + 1 < searchState.candidates.length;
+    answerQualityWarning.hidden = !responseIsLimited;
+    answerQualityWarning.textContent = responseIsLimited
+      ? data.answer_quality.message ||
+        "This response may not contain the requested details."
+      : "";
+    tryNextButton.hidden = !(responseIsLimited && hasAnotherCandidate);
+
     candidateView.hidden = true;
     matchView.hidden = false;
     matchView.focus();
@@ -435,6 +449,18 @@ function getInitials(name) {
 
 editRequestButton.addEventListener("click", showRequestView);
 newSearchButton.addEventListener("click", showRequestView);
+tryNextButton.addEventListener("click", showNextCandidate);
+
+function showNextCandidate() {
+  const nextIndex = searchState.currentIndex + 1;
+  if (nextIndex >= searchState.candidates.length) {
+    showRequestView();
+    return;
+  }
+
+  searchState.currentIndex = nextIndex;
+  renderCandidate(searchState.candidates[nextIndex]);
+}
 
 function showRequestView() {
   candidateView.hidden = true;
@@ -448,6 +474,8 @@ function showRequestView() {
   searchState.currentIndex = 0;
   searchState.selectedCandidate = null;
   candidateControlStatus.textContent = "";
+  answerQualityWarning.hidden = true;
+  tryNextButton.hidden = true;
   setCandidateControlsDisabled(false);
   promptInput.focus();
 }

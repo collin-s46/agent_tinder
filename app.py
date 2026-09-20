@@ -9,6 +9,7 @@ from services.ans_client import (
     search_agents,
 )
 from services.a2a_client import A2AClientError, send_message
+from services.answer_quality import assess_answer_quality
 from services.capability import UnsupportedCapabilityError, detect_capability
 from services.primary_agents import get_primary_agent, list_primary_agents
 from services.scoring import MINIMUM_COMPATIBILITY_SCORE, score_candidate
@@ -221,6 +222,11 @@ def connect_match():
         result = send_message(agent, prompt)
     except A2AClientError as error:
         return _error_response("a2a_failed", str(error), 502)
+
+    # External agents can complete the protocol while returning only a generic
+    # contact-us fallback. Surface that distinction without hiding their exact
+    # answer or silently contacting another agent on the user's behalf.
+    result["answer_quality"] = assess_answer_quality(result["answer"])
 
     return jsonify(
         {

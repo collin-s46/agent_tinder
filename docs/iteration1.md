@@ -267,6 +267,11 @@ is normalized defensively, and the A2A client verifies HTTPS hosts, blocks
 literal private-network endpoints, checks that the Agent Card agrees with ANS,
 and correlates JSON-RPC responses with the request ID.
 
+External agents can still complete A2A successfully while returning a generic
+contact-us fallback. Agent A now labels obvious refusal-and-redirect responses
+as limited, preserves the exact answer for transparency, and offers the next
+already-discovered candidate. It does not silently contact additional agents.
+
 ## Intended Flow
 
 ```text

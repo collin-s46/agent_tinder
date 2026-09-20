@@ -306,9 +306,26 @@
               <p id="matched-agent-answer"></p>
             </section>
 
-            <button id="new-search-button" class="secondary-action" type="button">
-              Start another search
-            </button>
+            <p
+              id="answer-quality-warning"
+              class="answer-quality-warning"
+              role="status"
+              hidden
+            ></p>
+
+            <div class="match-actions">
+              <button
+                id="try-next-button"
+                class="try-next-button"
+                type="button"
+                hidden
+              >
+                Try next discovered agent
+              </button>
+              <button id="new-search-button" class="secondary-action" type="button">
+                Start another search
+              </button>
+            </div>
           </section>
         </div>
       </section>

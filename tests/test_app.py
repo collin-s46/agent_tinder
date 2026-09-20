@@ -277,11 +277,45 @@ class SearchRouteTests(unittest.TestCase):
         self.assertEqual(response.json["capability"], "sauna")
         self.assertEqual(response.json["agent_name"], "HaloHeat Support Agent")
         self.assertEqual(response.json["answer"], "Drop-in sessions are $49.")
+        self.assertEqual(response.json["answer_quality"]["status"], "useful")
         mock_get_agent.assert_called_once_with("agent-123")
         mock_send_message.assert_called_once_with(
             mock_get_agent.return_value,
             "What services does HaloHeat offer?",
         )
+
+    @patch("app.send_message")
+    @patch("app.get_agent")
+    def test_match_flags_a_low_information_external_answer(
+        self,
+        mock_get_agent,
+        mock_send_message,
+    ):
+        mock_get_agent.return_value = {
+            "agent_id": "agent-123",
+            "name": "Catering Support Agent",
+        }
+        mock_send_message.return_value = {
+            "task_id": "task-123",
+            "context_id": "context-123",
+            "answer": (
+                "I'm unable to retrieve our menu at this moment. "
+                "Please contact us directly for details."
+            ),
+            "protocol_version": "0.3.0",
+        }
+
+        response = self.client.post(
+            "/api/match",
+            json={
+                "primary_agent_id": "spark",
+                "agent_id": "agent-123",
+                "prompt": "What catering services do you offer?",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["answer_quality"]["status"], "limited")
 
     @patch("app.get_agent")
     def test_match_reports_a_missing_agent(self, mock_get_agent):
